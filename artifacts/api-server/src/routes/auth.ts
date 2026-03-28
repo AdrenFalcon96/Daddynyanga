@@ -1,20 +1,8 @@
 import { Router, type IRouter } from "express";
-import { createHmac } from "crypto";
 import { query } from "../lib/db";
+import { signToken, verifyToken, hashPassword } from "../lib/jwt";
 
 const router: IRouter = Router();
-const SECRET = process.env.JWT_SECRET || "samanyanga-fixed-secret-2024";
-
-function hashPassword(password: string): string {
-  return createHmac("sha256", SECRET).update(password).digest("hex");
-}
-
-function makeToken(payload: Record<string, unknown>): string {
-  const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
-  const body = Buffer.from(JSON.stringify({ ...payload, exp: Math.floor(Date.now() / 1000) + 7 * 24 * 3600 })).toString("base64url");
-  const sig = createHmac("sha256", SECRET).update(`${header}.${body}`).digest("base64url");
-  return `${header}.${body}.${sig}`;
-}
 
 async function seedDemoUsers() {
   const demos = [
@@ -44,7 +32,7 @@ router.post("/login", async (req, res) => {
     if (!user || user.password !== hashPassword(String(password))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-    const token = makeToken({ id: user.id, email: user.email, role: user.role });
+    const token = signToken({ id: user.id, email: user.email, role: user.role });
     res.json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -64,7 +52,7 @@ router.post("/register", async (req, res) => {
       [email, hashPassword(String(password)), userRole, String(email).split("@")[0]]
     );
     const user = result.rows[0];
-    const token = makeToken({ id: user.id, email: user.email, role: user.role });
+    const token = signToken({ id: user.id, email: user.email, role: user.role });
     res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
@@ -75,8 +63,7 @@ router.get("/me", async (req, res) => {
   const auth = req.headers.authorization;
   if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
   try {
-    const parts = auth.slice(7).split(".");
-    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    const payload = verifyToken(auth.slice(7));
     const result = await query("SELECT * FROM users WHERE id = $1", [payload.id]);
     const user = result.rows[0];
     if (!user) return res.status(404).json({ error: "User not found" });

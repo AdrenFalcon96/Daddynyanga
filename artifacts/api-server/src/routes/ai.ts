@@ -1,7 +1,20 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import OpenAI from "openai";
+import { verifyToken } from "../lib/jwt";
 
 const router: IRouter = Router();
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const payload = verifyToken(auth.slice(7));
+    (req as any).user = payload;
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token" });
+  }
+}
 
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -201,7 +214,7 @@ router.post("/ai/student", async (req, res) => {
   });
 });
 
-router.post("/ai/admin", async (req, res) => {
+router.post("/ai/admin", requireAuth, async (req, res) => {
   const { message, section } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
   const sectionKey = section || "admin";
@@ -214,8 +227,8 @@ router.post("/ai/admin", async (req, res) => {
   });
 });
 
-// Generate image prompt via AI (OpenRouter → OpenAI) then return image generation info
-router.post("/ai/generate-image", async (req, res) => {
+// Generate image (requires auth to prevent abuse)
+router.post("/ai/generate-image", requireAuth, async (req, res) => {
   const { prompt, requestId } = req.body;
   if (!prompt) return res.status(400).json({ error: "prompt required" });
 
@@ -253,7 +266,7 @@ router.post("/ai/generate-image", async (req, res) => {
   res.json({ imageUrl, source, requestId });
 });
 
-router.post("/ai/generate-video", async (req, res) => {
+router.post("/ai/generate-video", requireAuth, async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "prompt required" });
   const result = await sisifGenerateVideo(prompt);

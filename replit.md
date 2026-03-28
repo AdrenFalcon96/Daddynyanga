@@ -81,8 +81,8 @@ workspace/
 - `POST /api/ai/hybrid` — AI chat (OpenRouter → OpenAI fallback)
 - `POST /api/ai/student` — Student AI
 - `POST /api/ai/chat` — Farmer AI
-- `POST /api/ai/generate-image` — Image generation (DALL-E 3 → placeholder)
-- `POST /api/ai/generate-video` — Video generation (SISIF.AI → placeholder)
+- `POST /api/ai/generate-image` — Image generation (DALL-E 3 → placeholder) **(requires Bearer token)**
+- `POST /api/ai/generate-video` — Video generation (SISIF.AI → placeholder) **(requires Bearer token)**
 
 ### Admin (requires Bearer JWT with role=admin)
 - `GET/POST /api/admin/ads` — All ads management
@@ -119,10 +119,13 @@ workspace/
 
 ## Auth & Security
 
-- JWT: HMAC-SHA256, 7-day expiry, role claim checked server-side
-- Default secret: `samanyanga-fixed-secret-2024` (override with `JWT_SECRET` env var)
-- Admin access: `role === "admin"` strictly enforced (no email bypass)
-- Demo accounts only visible in Admin Dashboard → Security & Access (not on login page)
+- JWT: HMAC-SHA256, 7-day expiry, signature **verified** on every protected request using `timingSafeEqual`
+- `JWT_SECRET` env var is **required** in production (auto-generated and stored); throws if missing in prod
+- Password hashing uses a separate stable `PASSWORD_SALT` (independent of JWT_SECRET, so rotating JWT_SECRET doesn't invalidate passwords)
+- Admin access: `role === "admin"` strictly enforced, no email-based bypass
+- AI generate-image, generate-video, and admin AI endpoints require valid Bearer token (prevents API abuse)
+- Shared JWT utility in `artifacts/api-server/src/lib/jwt.ts` — all routes use `verifyToken()` / `signToken()` / `hashPassword()`
+- No hardcoded secrets in source code; all keys via env vars
 - Demo credentials: `admin@demo.com / demo123`, `farmer@demo.com / demo123`, etc.
 
 ## Demo Accounts
