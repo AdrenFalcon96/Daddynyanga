@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import Marketplace from "./marketplace";
 import Listings from "./listings";
 import AiChatPanel from "@/components/AiChatPanel";
@@ -131,8 +132,10 @@ function InternRequestsTab() {
 }
 
 export default function Farmer() {
+  const auth = useAuthGuard();
   const [tab, setTab] = useState("marketplace");
   const [, navigate] = useLocation();
+  if (!auth) return null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", fontFamily: "system-ui, sans-serif" }}>

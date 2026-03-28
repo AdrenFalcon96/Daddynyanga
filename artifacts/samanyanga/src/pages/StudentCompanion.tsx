@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useLocation } from "wouter";
 import { studentAIHybrid } from "@/lib/aiEngine";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 
 const LEVELS = [
   { key: "grade7", label: "Grade 7" },
@@ -20,6 +21,7 @@ interface Message {
 }
 
 export default function StudentCompanion() {
+  const auth = useAuthGuard();
   const [, navigate] = useLocation();
   const [level, setLevel] = useState("olevel");
   const [subject, setSubject] = useState("");
@@ -31,6 +33,8 @@ export default function StudentCompanion() {
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  if (!auth) return null;
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import AiChatPanel from "@/components/AiChatPanel";
 
 interface InternRequest {
@@ -165,8 +166,10 @@ function MyApplications() {
 }
 
 export default function AgriIntern() {
+  const auth = useAuthGuard();
   const [tab, setTab] = useState("apply");
   const [, navigate] = useLocation();
+  if (!auth) return null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", fontFamily: "system-ui, sans-serif" }}>

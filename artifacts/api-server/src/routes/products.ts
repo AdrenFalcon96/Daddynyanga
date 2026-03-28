@@ -1,5 +1,21 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { query } from "../lib/db";
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    const parts = auth.slice(7).split(".");
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
+      return res.status(401).json({ error: "Token expired" });
+    }
+    (req as any).user = payload;
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
+  }
+}
 
 const router: IRouter = Router();
 
@@ -49,7 +65,7 @@ router.get("/products/:id", async (req, res) => {
   }
 });
 
-router.post("/products", async (req, res) => {
+router.post("/products", requireAuth, async (req, res) => {
   const { name, description, category, quantity, price, location, imageUrl, image_url, sellerName, seller_name, sellerPhone, seller_phone } = req.body;
   const imgUrl = imageUrl || image_url || null;
   const sName = sellerName || seller_name;
@@ -90,7 +106,7 @@ router.post("/products/:id/request", async (req, res) => {
   }
 });
 
-router.patch("/products/:id/status", async (req, res) => {
+router.patch("/products/:id/status", requireAuth, async (req, res) => {
   const { status } = req.body;
   const allowed = ["available", "sold", "reserved"];
   if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status" });

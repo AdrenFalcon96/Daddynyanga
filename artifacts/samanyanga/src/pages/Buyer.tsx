@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useAuthGuard } from "@/lib/useAuthGuard";
 import Marketplace from "./marketplace";
 import AiChatPanel from "@/components/AiChatPanel";
 
@@ -8,8 +9,10 @@ const TABS = [
 ];
 
 export default function Buyer() {
+  const auth = useAuthGuard();
   const [tab, setTab] = useState("marketplace");
   const [, navigate] = useLocation();
+  if (!auth) return null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", fontFamily: "system-ui, sans-serif" }}>
