@@ -48,6 +48,42 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## Samanyanga Companion App
+
+**Artifact**: `artifacts/samanyanga` — Zimbabwe agricultural marketplace web app (React + Vite, served at `/`)
+
+### Pages
+- `/` — Home (hero, feature cards, Login/Register/Browse Adverts buttons)
+- `/login` — Login with show/hide password toggle; demo accounts shown
+- `/register` — Registration with role selection (farmer/merchant/seller/student)
+- `/public-ads` — Public adverts with image/video split layout, WhatsApp/Facebook/Instagram/X share buttons, custom ad request form
+- `/farmer` — Farmer dashboard: browse marketplace + manage listings
+- `/buyer` — Merchant/Buyer dashboard: browse marketplace
+- `/seller` — Seller dashboard: manage listings + browse marketplace
+- `/student-companion` — AI study chat for Grade 7 / O Level / A Level (download chat button)
+
+### Backend Routes (API Server, port 8080)
+- `POST /api/login` — returns JWT token + user role
+- `POST /api/register` — register new user (roles: farmer/merchant/seller/student)
+- `GET /api/me` — get current user from Bearer token
+- `GET /api/ads` — list all public adverts
+- `POST /api/advert-requests` — submit custom ad request
+- `GET /api/products[?category=...]` — list products
+- `GET /api/products/:id` — product detail
+- `POST /api/products` — create product listing
+- `POST /api/products/:id/request` — request a product (buyer contacts seller)
+- `POST /api/ai/chat` — agricultural AI chat
+- `POST /api/ai/student` — student study AI chat
+
+### Demo Accounts (password: `demo123`)
+- farmer@demo.com → Farmer Dashboard
+- buyer@demo.com → Merchant Dashboard
+- seller@demo.com → Seller Dashboard
+- student@demo.com → Student Companion
+
+### Vite Proxy
+Vite proxies `/api` → `http://localhost:8080` in dev mode.
+
 ## Packages
 
 ### `artifacts/api-server` (`@workspace/api-server`)
