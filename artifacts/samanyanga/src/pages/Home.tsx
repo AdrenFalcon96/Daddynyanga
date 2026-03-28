@@ -1,4 +1,5 @@
 import { useLocation } from "wouter";
+import founderPhoto from "/founder.webp";
 
 function getTokenRole(): string | null {
   try {
@@ -134,6 +135,31 @@ export default function Home() {
           >
             Request consultation →
           </button>
+        </div>
+
+        <div style={{
+          marginTop: 48,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 12,
+        }}>
+          <img
+            src={founderPhoto}
+            alt="Founder"
+            style={{
+              width: 200,
+              height: 200,
+              objectFit: "cover",
+              objectPosition: "top center",
+              borderRadius: "50%",
+              border: "4px solid rgba(134,239,172,0.6)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+            }}
+          />
+          <p style={{ color: "#bbf7d0", fontSize: 13, margin: 0, opacity: 0.8 }}>
+            Built with vision. Rooted in Zimbabwe.
+          </p>
         </div>
       </div>
     </div>
