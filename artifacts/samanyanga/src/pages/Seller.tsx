@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import Marketplace from "./marketplace";
 import Listings from "./listings";
+import AiChatPanel from "@/components/AiChatPanel";
 
 const TABS = [
   { key: "listings", label: "📋 My Listings" },
@@ -41,6 +42,8 @@ export default function Seller() {
         {tab === "listings" && <Listings />}
         {tab === "marketplace" && <Marketplace />}
       </div>
+
+      <AiChatPanel />
     </div>
   );
 }

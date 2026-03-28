@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import AiChatPanel from "@/components/AiChatPanel";
 
 const TABS = [
   { key: "advert-requests", label: "📋 Advert Requests" },
   { key: "product-requests", label: "🛒 Product Requests" },
+  { key: "intern-requests", label: "🎓 Intern Requests" },
 ];
 
 function useAdminCheck() {
@@ -139,6 +141,18 @@ export default function Admin() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/product-requests"] }),
   });
 
+  const { data: internRequests = [], isLoading: loadingInterns } = useQuery<any[]>({
+    queryKey: ["/api/intern-attachments"],
+    queryFn: () => apiRequest("GET", "/api/intern-attachments"),
+    enabled: isAdmin,
+  });
+
+  const updateInternStatus = useMutation({
+    mutationFn: ({ id, status, response }: { id: string; status: string; response?: string }) =>
+      apiRequest("PATCH", `/api/intern-attachments/${id}`, { status, response }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/intern-attachments"] }),
+  });
+
   const handleGenerate = async (requestId: string, type: "image" | "video") => {
     setGenerating(requestId);
     try {
@@ -261,7 +275,51 @@ export default function Admin() {
             )}
           </div>
         )}
+
+        {tab === "intern-requests" && (
+          <div style={{ maxWidth: 800, margin: "0 auto" }}>
+            <h2 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 16px" }}>Intern Attachment Requests ({internRequests.length})</h2>
+            {loadingInterns ? <p style={{ color: "#9ca3af" }}>Loading...</p> : internRequests.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#9ca3af" }}>No intern requests yet</p></div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {internRequests.map((r: any) => (
+                  <div key={r.id} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>{r.student_name}</p>
+                        <p style={{ margin: "2px 0", fontSize: 12, color: "#6b7280" }}>{r.student_email}</p>
+                        <p style={{ margin: "4px 0", fontSize: 13, color: "#374151" }}>🏫 {r.institution} · 📚 {r.program} · Year {r.year}</p>
+                        {r.message && <p style={{ margin: "4px 0", fontSize: 13, color: "#374151", fontStyle: "italic" }}>"{r.message}"</p>}
+                        <span style={{
+                          background: r.status === "accepted" ? "#d1fae5" : r.status === "rejected" ? "#fee2e2" : "#fef3c7",
+                          color: r.status === "accepted" ? "#065f46" : r.status === "rejected" ? "#991b1b" : "#92400e",
+                          padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, textTransform: "capitalize", marginTop: 6, display: "inline-block"
+                        }}>{r.status}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>{new Date(r.created_at).toLocaleDateString()}</p>
+                    </div>
+                    {r.status === "pending" && (
+                      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                        <button onClick={() => updateInternStatus.mutate({ id: r.id, status: "accepted", response: "Your application has been accepted. Please contact us to arrange start date." })}
+                          style={{ padding: "7px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                          ✓ Accept
+                        </button>
+                        <button onClick={() => updateInternStatus.mutate({ id: r.id, status: "rejected", response: "Unfortunately we cannot accommodate your request at this time." })}
+                          style={{ padding: "7px 14px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                          ✕ Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      <AiChatPanel />
     </div>
   );
 }

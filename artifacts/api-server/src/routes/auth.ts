@@ -54,7 +54,7 @@ router.post("/login", async (req, res) => {
 router.post("/register", async (req, res) => {
   const { email, password, role } = req.body;
   if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-  const allowedRoles = ["farmer", "merchant", "seller", "student"];
+  const allowedRoles = ["farmer", "merchant", "seller", "student", "agri_intern"];
   const userRole = allowedRoles.includes(role) ? role : "farmer";
   try {
     const existing = await query("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", [email]);

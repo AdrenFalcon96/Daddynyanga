@@ -23,7 +23,9 @@ export default function Login() {
         const res = await apiRequest("POST", "/api/login", { email, password });
         localStorage.setItem("token", res.token);
         const userRole = res.user?.role;
-        if (userRole === "student") navigate("/student-companion");
+        if (userRole === "admin") navigate("/admin");
+        else if (userRole === "agri_intern") navigate("/agri-intern");
+        else if (userRole === "student") navigate("/student-companion");
         else if (userRole === "merchant") navigate("/buyer");
         else if (userRole === "seller") navigate("/seller");
         else navigate("/farmer");
@@ -132,6 +134,7 @@ export default function Login() {
                 <option value="merchant">Merchant / Buyer</option>
                 <option value="seller">Seller</option>
                 <option value="student">Student</option>
+                <option value="agri_intern">Agri Intern (Tertiary)</option>
               </select>
             </div>
           )}
@@ -159,7 +162,7 @@ export default function Login() {
         {!isRegister && (
           <div style={{ marginTop: 16, padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, fontSize: 12, color: "#14532d" }}>
             <strong>Demo accounts</strong> (password: <code>demo123</code>)<br />
-            farmer@demo.com · buyer@demo.com · seller@demo.com · student@demo.com
+            farmer@demo.com · buyer@demo.com · seller@demo.com · student@demo.com · admin@demo.com
           </div>
         )}
 

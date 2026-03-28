@@ -7,6 +7,7 @@ interface Ad {
   id: string;
   title: string;
   description: string;
+  type?: string;
   image_url?: string;
   imageUrl?: string;
   video_url?: string;
@@ -191,9 +192,41 @@ export default function PublicAds() {
             </button>
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 20 }}>
-            {ads.map(ad => <AdCard key={ad.id} ad={ad} onView={(id) => navigate(`/adverts/${id}`)} />)}
-          </div>
+          <>
+            {(() => {
+              const imageAds = ads.filter(a => a.type === "image" || (!a.type && (a.image_url || a.imageUrl) && !(a.video_url || a.videoUrl)));
+              const videoAds = ads.filter(a => a.type === "video" || (!a.type && (a.video_url || a.videoUrl)));
+              return (
+                <>
+                  {imageAds.length > 0 && (
+                    <div style={{ marginBottom: 32 }}>
+                      <h2 style={{ fontSize: 16, fontWeight: 800, color: "#374151", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                        🖼 Image Adverts <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>({imageAds.length})</span>
+                      </h2>
+                      <div style={{ display: "grid", gap: 20 }}>
+                        {imageAds.map(ad => <AdCard key={ad.id} ad={ad} onView={(id) => navigate(`/adverts/${id}`)} />)}
+                      </div>
+                    </div>
+                  )}
+                  {videoAds.length > 0 && (
+                    <div>
+                      <h2 style={{ fontSize: 16, fontWeight: 800, color: "#374151", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                        🎬 Video Adverts <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>({videoAds.length})</span>
+                      </h2>
+                      <div style={{ display: "grid", gap: 20 }}>
+                        {videoAds.map(ad => <AdCard key={ad.id} ad={ad} onView={(id) => navigate(`/adverts/${id}`)} />)}
+                      </div>
+                    </div>
+                  )}
+                  {imageAds.length === 0 && videoAds.length === 0 && (
+                    <div style={{ display: "grid", gap: 20 }}>
+                      {ads.map(ad => <AdCard key={ad.id} ad={ad} onView={(id) => navigate(`/adverts/${id}`)} />)}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </>
         )}
       </div>
 

@@ -6,6 +6,7 @@ import authRouter from "./auth";
 import aiRouter from "./ai";
 import adminRouter from "./admin";
 import paymentsRouter from "./payments";
+import internAttachmentsRouter from "./intern-attachments";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(authRouter);
 router.use(aiRouter);
 router.use(adminRouter);
 router.use(paymentsRouter);
+router.use(internAttachmentsRouter);
 
 export default router;

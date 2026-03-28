@@ -11,6 +11,7 @@ import Buyer from "@/pages/Buyer";
 import Seller from "@/pages/Seller";
 import StudentCompanion from "@/pages/StudentCompanion";
 import Admin from "@/pages/Admin";
+import AgriIntern from "@/pages/AgriIntern";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/seller" component={Seller} />
       <Route path="/student-companion" component={StudentCompanion} />
       <Route path="/admin" component={Admin} />
+      <Route path="/agri-intern" component={AgriIntern} />
       <Route component={NotFound} />
     </Switch>
   );
