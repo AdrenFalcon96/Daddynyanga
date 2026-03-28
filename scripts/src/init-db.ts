@@ -80,6 +80,33 @@ async function run() {
         farmer_email TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS consultations (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        email TEXT NOT NULL,
+        phone TEXT,
+        type TEXT NOT NULL,
+        message TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending',
+        response TEXT,
+        payment_status TEXT NOT NULL DEFAULT 'free',
+        payment_ref TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS study_materials (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        title TEXT NOT NULL,
+        description TEXT,
+        grade TEXT NOT NULL,
+        subject TEXT NOT NULL,
+        file_type TEXT NOT NULL,
+        file_data TEXT,
+        file_name TEXT,
+        mime_type TEXT,
+        uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
     `);
     console.log("All tables created/verified.");
   } finally {
