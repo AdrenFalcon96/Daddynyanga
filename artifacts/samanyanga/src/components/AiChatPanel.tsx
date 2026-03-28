@@ -6,10 +6,26 @@ interface Message {
   text: string;
 }
 
-export default function AiChatPanel() {
+interface Props {
+  context?: string;
+  endpoint?: string;
+  section?: string;
+  placeholder?: string;
+  greeting?: string;
+  headerLabel?: string;
+}
+
+export default function AiChatPanel({
+  context,
+  endpoint,
+  section,
+  placeholder = "Ask about farming...",
+  greeting = "Hello! I'm your AgriAI assistant. Ask me about crops, livestock, soil, prices, or farming tips.",
+  headerLabel = "AgriAI Chat",
+}: Props) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "ai", text: "Hello! I'm your AgriAI assistant. Ask me about crops, livestock, soil, prices, or farming tips." },
+    { role: "ai", text: greeting },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +42,22 @@ export default function AiChatPanel() {
     setInput("");
     setLoading(true);
     try {
-      const reply = await agriAIHybrid(text);
+      let reply: string;
+      if (endpoint) {
+        const token = localStorage.getItem("token");
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ message: text, context, section }),
+        });
+        const data = await res.json();
+        reply = data.reply || "I'm here to help. Please ask your question.";
+      } else {
+        reply = await agriAIHybrid(text);
+      }
       setMessages(m => [...m, { role: "ai", text: reply }]);
     } finally {
       setLoading(false);
@@ -44,7 +75,7 @@ export default function AiChatPanel() {
           <div style={{ background: "linear-gradient(135deg,#14532d,#166534)", padding: "10px 14px", borderRadius: "12px 12px 0 0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span>🌾</span>
-              <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>AgriAI Chat</span>
+              <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{headerLabel}</span>
             </div>
             <button onClick={() => setOpen(false)} style={{ background: "none", border: "none", color: "#86efac", cursor: "pointer", fontSize: 16, lineHeight: 1 }}>✕</button>
           </div>
@@ -75,7 +106,7 @@ export default function AiChatPanel() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && send()}
-              placeholder="Ask about farming..."
+              placeholder={placeholder}
               style={{ flex: 1, padding: "7px 10px", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, outline: "none" }}
             />
             <button

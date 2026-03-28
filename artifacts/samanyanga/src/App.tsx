@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
+import AdminLogin from "@/pages/AdminLogin";
 import PublicAds from "@/pages/PublicAds";
 import AdvertDetail from "@/pages/AdvertDetail";
 import Farmer from "@/pages/Farmer";
@@ -12,6 +13,7 @@ import Seller from "@/pages/Seller";
 import StudentCompanion from "@/pages/StudentCompanion";
 import Admin from "@/pages/Admin";
 import AgriIntern from "@/pages/AgriIntern";
+import Consultation from "@/pages/Consultation";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -26,6 +28,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/register" component={Login} />
+      <Route path="/admin-login" component={AdminLogin} />
+      <Route path="/consultation" component={Consultation} />
       <Route path="/public-ads" component={PublicAds} />
       <Route path="/adverts/:id" component={AdvertDetail} />
       <Route path="/farmer" component={Farmer} />

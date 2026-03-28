@@ -7,6 +7,7 @@ import aiRouter from "./ai";
 import adminRouter from "./admin";
 import paymentsRouter from "./payments";
 import internAttachmentsRouter from "./intern-attachments";
+import consultationsRouter from "./consultations";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use(aiRouter);
 router.use(adminRouter);
 router.use(paymentsRouter);
 router.use(internAttachmentsRouter);
+router.use(consultationsRouter);
 
 export default router;

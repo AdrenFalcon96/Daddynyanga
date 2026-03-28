@@ -8,7 +8,37 @@ const TABS = [
   { key: "advert-requests", label: "📋 Advert Requests" },
   { key: "product-requests", label: "🛒 Product Requests" },
   { key: "intern-requests", label: "🎓 Intern Requests" },
+  { key: "consultations", label: "💬 Consultations" },
+  { key: "revenue", label: "💰 Revenue" },
 ];
+
+const AI_CONFIG: Record<string, { placeholder: string; greeting: string; headerLabel: string }> = {
+  "advert-requests": {
+    placeholder: "Ask about advert management...",
+    greeting: "Hi! I can help you manage advert requests — approvals, rejections, generating content, and more.",
+    headerLabel: "Advert AI",
+  },
+  "product-requests": {
+    placeholder: "Ask about product requests...",
+    greeting: "Hi! I can assist with marketplace product requests — accepting, rejecting, and tracking buyer inquiries.",
+    headerLabel: "Marketplace AI",
+  },
+  "intern-requests": {
+    placeholder: "Ask about intern management...",
+    greeting: "Hi! I can help manage intern attachment requests — reviewing applications and responding to students.",
+    headerLabel: "Intern AI",
+  },
+  "consultations": {
+    placeholder: "Ask about consultations...",
+    greeting: "Hi! I can help with consultation management — reviewing requests, responding to users, and tracking paid consultations.",
+    headerLabel: "Consultation AI",
+  },
+  "revenue": {
+    placeholder: "Ask about revenue and payments...",
+    greeting: "Hi! I can help you understand revenue, track EcoCash payments (0783652488), and generate payment reports.",
+    headerLabel: "Revenue AI",
+  },
+};
 
 function useAdminCheck() {
   const token = localStorage.getItem("token");
@@ -49,6 +79,26 @@ interface ProductRequest {
   created_at: string;
 }
 
+interface Consultation {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  type: string;
+  message: string;
+  status: string;
+  response?: string;
+  payment_status: string;
+  payment_ref?: string;
+  created_at: string;
+}
+
+function badge(s: string) {
+  const c = s === "pending" ? "#92400e" : s === "approved" || s === "paid" || s === "responded" ? "#065f46" : s === "priority" || s === "accepted" ? "#1e40af" : s === "free" ? "#374151" : "#6b7280";
+  const bg = s === "pending" ? "#fef3c7" : s === "approved" || s === "paid" || s === "responded" ? "#d1fae5" : s === "priority" || s === "accepted" ? "#dbeafe" : s === "free" ? "#f3f4f6" : "#f3f4f6";
+  return <span style={{ background: bg, color: c, padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, textTransform: "capitalize" as const }}>{s}</span>;
+}
+
 function AdvertRequestCard({ req, onGenImage, onGenVideo, onUpdateStatus, generating }: {
   req: AdvertRequest;
   onGenImage: (id: string) => void;
@@ -56,11 +106,6 @@ function AdvertRequestCard({ req, onGenImage, onGenVideo, onUpdateStatus, genera
   onUpdateStatus: (id: string, status: string) => void;
   generating: string | null;
 }) {
-  const badge = (s: string) => {
-    const c = s === "pending" ? "#92400e" : s === "approved" || s === "paid" ? "#065f46" : s === "priority" ? "#1e40af" : "#6b7280";
-    const bg = s === "pending" ? "#fef3c7" : s === "approved" || s === "paid" ? "#d1fae5" : s === "priority" ? "#dbeafe" : "#f3f4f6";
-    return <span style={{ background: bg, color: c, padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, textTransform: "capitalize" }}>{s}</span>;
-  };
   return (
     <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 8, flexWrap: "wrap" }}>
@@ -81,18 +126,12 @@ function AdvertRequestCard({ req, onGenImage, onGenVideo, onUpdateStatus, genera
         </div>
       )}
       <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
-        <button
-          onClick={() => onGenImage(req.id)}
-          disabled={generating === req.id}
-          style={{ padding: "7px 14px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-        >
+        <button onClick={() => onGenImage(req.id)} disabled={generating === req.id}
+          style={{ padding: "7px 14px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           {generating === req.id ? "Generating..." : "🖼 Generate Image"}
         </button>
-        <button
-          onClick={() => onGenVideo(req.id)}
-          disabled={generating === req.id}
-          style={{ padding: "7px 14px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}
-        >
+        <button onClick={() => onGenVideo(req.id)} disabled={generating === req.id}
+          style={{ padding: "7px 14px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
           🎬 Generate Video
         </button>
         {req.status === "pending" && (
@@ -108,6 +147,129 @@ function AdvertRequestCard({ req, onGenImage, onGenVideo, onUpdateStatus, genera
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function ConsultationCard({ c, onRespond }: { c: Consultation; onRespond: (id: string, response: string) => void }) {
+  const [responding, setResponding] = useState(false);
+  const [responseText, setResponseText] = useState(c.response || "");
+
+  const typeColors: Record<string, string> = {
+    student: "#6366f1", farmer: "#16a34a", buyer: "#0891b2",
+    seller: "#d97706", intern: "#7c3aed", agronomic: "#dc2626",
+  };
+
+  return (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start", gap: 8, flexWrap: "wrap" }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>{c.name}</p>
+            <span style={{ background: typeColors[c.type] || "#6b7280", color: "#fff", padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700, textTransform: "capitalize" as const }}>{c.type}</span>
+          </div>
+          <p style={{ margin: "2px 0", fontSize: 12, color: "#6b7280" }}>{c.email} {c.phone && `· ${c.phone}`}</p>
+          <p style={{ margin: "8px 0 6px", fontSize: 13, color: "#374151", background: "#f9fafb", padding: "8px 10px", borderRadius: 6 }}>"{c.message}"</p>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {badge(c.status)} {badge(c.payment_status)}
+            {c.payment_ref && <span style={{ fontSize: 11, color: "#9ca3af" }}>Ref: {c.payment_ref}</span>}
+          </div>
+          {c.response && (
+            <div style={{ marginTop: 8, padding: "8px 10px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 6, fontSize: 12, color: "#166534" }}>
+              <strong>Your response:</strong> {c.response}
+            </div>
+          )}
+        </div>
+        <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>{new Date(c.created_at).toLocaleDateString()}</p>
+      </div>
+      {c.status !== "responded" && (
+        <div style={{ marginTop: 12 }}>
+          {!responding ? (
+            <button onClick={() => setResponding(true)}
+              style={{ padding: "7px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              ✍️ Respond
+            </button>
+          ) : (
+            <div>
+              <textarea
+                value={responseText}
+                onChange={e => setResponseText(e.target.value)}
+                placeholder="Type your response..."
+                rows={3}
+                style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, outline: "none", boxSizing: "border-box", resize: "vertical" }}
+              />
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button onClick={() => { onRespond(c.id, responseText); setResponding(false); }}
+                  style={{ padding: "7px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+                  Send Response
+                </button>
+                <button onClick={() => setResponding(false)}
+                  style={{ padding: "7px 14px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RevenueTab() {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/admin/revenue"],
+    queryFn: () => apiRequest("GET", "/api/admin/revenue"),
+  });
+
+  if (isLoading) return <p style={{ color: "#9ca3af" }}>Loading revenue data...</p>;
+  if (!data) return null;
+
+  const stat = (label: string, value: string | number, sub?: string, color = "#111") => (
+    <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20 }}>
+      <p style={{ margin: 0, fontSize: 12, color: "#6b7280", fontWeight: 600 }}>{label}</p>
+      <p style={{ margin: "4px 0 0", fontSize: 28, fontWeight: 800, color }}>{value}</p>
+      {sub && <p style={{ margin: "2px 0 0", fontSize: 11, color: "#9ca3af" }}>{sub}</p>}
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+      <h2 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 16px" }}>Revenue Overview</h2>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 12, marginBottom: 20 }}>
+        {stat("Total Revenue", `$${data.totalRevenue}`, "Adverts + Consultations", "#16a34a")}
+        {stat("Paid Adverts", data.adverts?.paid_adverts ?? 0, `of ${data.adverts?.total_adverts ?? 0} total`)}
+        {stat("Paid Consultations", data.consultations?.paid_consultations ?? 0, `of ${data.consultations?.total_consultations ?? 0} total`)}
+      </div>
+
+      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 20, marginBottom: 16 }}>
+        <p style={{ margin: "0 0 12px", fontWeight: 700, fontSize: 14 }}>💳 EcoCash Payment Details</p>
+        <p style={{ margin: "0 0 4px", fontSize: 14, color: "#374151" }}>Account: <strong style={{ color: "#16a34a" }}>{data.ecocashAccount}</strong></p>
+        <p style={{ margin: 0, fontSize: 12, color: "#6b7280" }}>Advert payments: $10 (standard) · $25 (premium) · Consultation: $5 (agronomic)</p>
+      </div>
+
+      {data.recentPayments?.length > 0 && (
+        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, overflow: "hidden" }}>
+          <div style={{ padding: "12px 16px", borderBottom: "1px solid #e5e7eb" }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Recent Payments</p>
+          </div>
+          <div>
+            {data.recentPayments.map((p: any, i: number) => (
+              <div key={i} style={{ padding: "10px 16px", borderBottom: i < data.recentPayments.length - 1 ? "1px solid #f3f4f6" : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 13, fontWeight: 600 }}>{p.name}</p>
+                  <p style={{ margin: 0, fontSize: 11, color: "#6b7280" }}>{p.email} · {p.source} · {p.type}</p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {badge(p.payment_status)}
+                  <span style={{ fontSize: 11, color: "#9ca3af" }}>{new Date(p.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -153,6 +315,18 @@ export default function Admin() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/intern-attachments"] }),
   });
 
+  const { data: consultations = [], isLoading: loadingConsultations } = useQuery<Consultation[]>({
+    queryKey: ["/api/admin/consultations"],
+    queryFn: () => apiRequest("GET", "/api/admin/consultations"),
+    enabled: isAdmin,
+  });
+
+  const respondConsultation = useMutation({
+    mutationFn: ({ id, response }: { id: string; response: string }) =>
+      apiRequest("PATCH", `/api/admin/consultations/${id}`, { response, status: "responded" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/consultations"] }),
+  });
+
   const handleGenerate = async (requestId: string, type: "image" | "video") => {
     setGenerating(requestId);
     try {
@@ -171,14 +345,16 @@ export default function Admin() {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 48 }}>🔒</div>
           <p style={{ fontWeight: 700, color: "#374151", marginTop: 12 }}>Admin access required</p>
-          <p style={{ color: "#6b7280", fontSize: 13 }}>Log in with admin@demo.com / demo123</p>
-          <button onClick={() => navigate("/login")} style={{ marginTop: 12, padding: "10px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-            Go to Login
+          <p style={{ color: "#6b7280", fontSize: 13 }}>Please log in through the admin portal.</p>
+          <button onClick={() => navigate("/admin-login")} style={{ marginTop: 12, padding: "10px 24px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+            Admin Login
           </button>
         </div>
       </div>
     );
   }
+
+  const aiCfg = AI_CONFIG[tab] || AI_CONFIG["advert-requests"];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh", fontFamily: "system-ui, sans-serif" }}>
@@ -196,10 +372,10 @@ export default function Admin() {
         </button>
       </div>
 
-      <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", display: "flex" }}>
+      <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", display: "flex", overflowX: "auto" }}>
         {TABS.map(({ key, label }) => (
           <button key={key} onClick={() => setTab(key)}
-            style={{ padding: "12px 20px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: tab === key ? 700 : 500, color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "3px solid #4f46e5" : "3px solid transparent" }}>
+            style={{ padding: "12px 18px", border: "none", background: "none", cursor: "pointer", fontSize: 13, fontWeight: tab === key ? 700 : 500, color: tab === key ? "#4f46e5" : "#6b7280", borderBottom: tab === key ? "3px solid #4f46e5" : "3px solid transparent", whiteSpace: "nowrap" }}>
             {label}
           </button>
         ))}
@@ -216,10 +392,7 @@ export default function Admin() {
             ) : (
               <div style={{ display: "grid", gap: 12 }}>
                 {advertRequests.map(r => (
-                  <AdvertRequestCard
-                    key={r.id}
-                    req={r}
-                    generating={generating}
+                  <AdvertRequestCard key={r.id} req={r} generating={generating}
                     onGenImage={(id) => handleGenerate(id, "image")}
                     onGenVideo={(id) => handleGenerate(id, "video")}
                     onUpdateStatus={(id, status) => updateAdvertStatus.mutate({ id, status })}
@@ -247,13 +420,7 @@ export default function Admin() {
                         <p style={{ margin: "2px 0 6px", fontSize: 12, color: "#6b7280" }}>{r.buyer_phone}</p>
                         <p style={{ margin: "0 0 4px", fontSize: 13, color: "#374151" }}>Product: <strong>{r.product_name}</strong> — ${r.product_price} · 📍 {r.location}</p>
                         {r.message && <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>{r.message}</p>}
-                        <div style={{ marginTop: 6 }}>
-                          <span style={{
-                            background: r.status === "accepted" ? "#d1fae5" : r.status === "rejected" ? "#fee2e2" : "#fef3c7",
-                            color: r.status === "accepted" ? "#065f46" : r.status === "rejected" ? "#991b1b" : "#92400e",
-                            padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, textTransform: "capitalize"
-                          }}>{r.status}</span>
-                        </div>
+                        <div style={{ marginTop: 6 }}>{badge(r.status)}</div>
                       </div>
                       <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>{new Date(r.created_at).toLocaleDateString()}</p>
                     </div>
@@ -291,11 +458,7 @@ export default function Admin() {
                         <p style={{ margin: "2px 0", fontSize: 12, color: "#6b7280" }}>{r.student_email}</p>
                         <p style={{ margin: "4px 0", fontSize: 13, color: "#374151" }}>🏫 {r.institution} · 📚 {r.program} · Year {r.year}</p>
                         {r.message && <p style={{ margin: "4px 0", fontSize: 13, color: "#374151", fontStyle: "italic" }}>"{r.message}"</p>}
-                        <span style={{
-                          background: r.status === "accepted" ? "#d1fae5" : r.status === "rejected" ? "#fee2e2" : "#fef3c7",
-                          color: r.status === "accepted" ? "#065f46" : r.status === "rejected" ? "#991b1b" : "#92400e",
-                          padding: "2px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, textTransform: "capitalize", marginTop: 6, display: "inline-block"
-                        }}>{r.status}</span>
+                        {badge(r.status)}
                       </div>
                       <p style={{ margin: 0, fontSize: 11, color: "#9ca3af" }}>{new Date(r.created_at).toLocaleDateString()}</p>
                     </div>
@@ -317,9 +480,35 @@ export default function Admin() {
             )}
           </div>
         )}
+
+        {tab === "consultations" && (
+          <div style={{ maxWidth: 800, margin: "0 auto" }}>
+            <h2 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 16px" }}>Consultation Requests ({consultations.length})</h2>
+            {loadingConsultations ? <p style={{ color: "#9ca3af" }}>Loading...</p> : consultations.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 40 }}><p style={{ color: "#9ca3af" }}>No consultation requests yet</p></div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {consultations.map(c => (
+                  <ConsultationCard key={c.id} c={c}
+                    onRespond={(id, response) => respondConsultation.mutate({ id, response })}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === "revenue" && <RevenueTab />}
       </div>
 
-      <AiChatPanel />
+      <AiChatPanel
+        key={tab}
+        section={tab}
+        endpoint="/api/ai/admin"
+        placeholder={aiCfg.placeholder}
+        greeting={aiCfg.greeting}
+        headerLabel={aiCfg.headerLabel}
+      />
     </div>
   );
 }

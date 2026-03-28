@@ -1,7 +1,22 @@
 import { useLocation } from "wouter";
 
+function getTokenRole(): string | null {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    const parts = token.split(".");
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
+    return payload.role || null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Home() {
   const [, navigate] = useLocation();
+  const role = getTokenRole();
+  const isAdmin = role === "admin";
 
   return (
     <div style={{
@@ -13,7 +28,32 @@ export default function Home() {
       justifyContent: "center",
       fontFamily: "system-ui, sans-serif",
       padding: "24px",
+      position: "relative",
     }}>
+      {isAdmin && (
+        <button
+          onClick={() => navigate("/admin")}
+          title="Admin Dashboard"
+          style={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            background: "rgba(220,38,38,0.15)",
+            border: "1px solid rgba(220,38,38,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#dc2626", display: "block" }} />
+        </button>
+      )}
+
       <div style={{ textAlign: "center", maxWidth: 600 }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>🌾</div>
         <h1 style={{ fontSize: 42, fontWeight: 900, color: "#ffffff", margin: "0 0 8px", letterSpacing: "-0.5px" }}>
@@ -83,19 +123,20 @@ export default function Home() {
           </button>
         </div>
 
-        <button
-          onClick={() => navigate("/public-ads")}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#86efac",
-            fontSize: 13,
-            cursor: "pointer",
-            textDecoration: "underline",
-          }}
-        >
-          Browse public adverts →
-        </button>
+        <div style={{ display: "flex", gap: 16, justifyContent: "center", flexWrap: "wrap" }}>
+          <button
+            onClick={() => navigate("/public-ads")}
+            style={{ background: "none", border: "none", color: "#86efac", fontSize: 13, cursor: "pointer", textDecoration: "underline" }}
+          >
+            Browse public adverts →
+          </button>
+          <button
+            onClick={() => navigate("/consultation")}
+            style={{ background: "none", border: "none", color: "#86efac", fontSize: 13, cursor: "pointer", textDecoration: "underline" }}
+          >
+            Request consultation →
+          </button>
+        </div>
       </div>
     </div>
   );

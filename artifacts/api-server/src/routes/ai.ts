@@ -81,9 +81,25 @@ router.post("/ai/student", async (req, res) => {
       return res.json({ reply: context ? `[${context}] ${tip}` : tip });
     }
   }
-  const systemPrompt = `You are a study assistant inside Samanyanga Companion for Zimbabwe students. Context: ${context || "general studies"}. Give concise, step-by-step answers tailored to ZIMSEC curriculum (Grade 7, O Level, A Level). Keep responses under 150 words.`;
+  const systemPrompt = `You are an assistant inside Samanyanga Companion. Give step-by-step answers using platform features and actionable guidance, tailored to the context of the current section. Current section: ${context || "Student Companion"}. Focus on ZIMSEC curriculum (Grade 7, O Level, A Level) for Zimbabwe students. Keep responses under 200 words.`;
   const aiReply = await openrouterChat(systemPrompt, message);
   res.json({ reply: aiReply || `I'm here to help with your ${context || "studies"}. Ask me about any subject — mathematics, science, English, history, or exam preparation.` });
+});
+
+router.post("/ai/admin", async (req, res) => {
+  const { message, section } = req.body;
+  if (!message) return res.status(400).json({ error: "message required" });
+  const SECTION_CONTEXT: Record<string, string> = {
+    "advert-requests": "advert and advertisement management — reviewing, approving, or rejecting business ad requests, and generating image or video content for adverts",
+    "product-requests": "marketplace product request management — reviewing buyer inquiries, accepting or rejecting product purchase requests",
+    "intern-requests": "intern attachment request management — reviewing student applications for agricultural attachments at farms",
+    "revenue": "revenue management and financial tracking — payment records, EcoCash payments (account 0783652488), advert and consultation revenue",
+    "consultations": "consultation request management — reviewing and responding to student, farmer, buyer, seller, intern, and paid agronomic consultations",
+  };
+  const sectionDesc = SECTION_CONTEXT[section] || "admin dashboard management";
+  const systemPrompt = `You are an assistant inside Samanyanga Companion Admin Dashboard. Give step-by-step answers using platform features and actionable guidance, tailored to the context of the current section. Current section: ${sectionDesc}. Be concise and practical. Keep responses under 200 words.`;
+  const aiReply = await openrouterChat(systemPrompt, message);
+  res.json({ reply: aiReply || `I can help you manage ${section || "the admin dashboard"}. Ask about approvals, payments, consultations, or any platform feature.` });
 });
 
 export default router;

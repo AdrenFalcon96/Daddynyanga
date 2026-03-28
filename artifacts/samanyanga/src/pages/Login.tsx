@@ -159,12 +159,6 @@ export default function Login() {
           </button>
         </form>
 
-        {!isRegister && (
-          <div style={{ marginTop: 16, padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, fontSize: 12, color: "#14532d" }}>
-            <strong>Demo accounts</strong> (password: <code>demo123</code>)<br />
-            farmer@demo.com · buyer@demo.com · seller@demo.com · student@demo.com · admin@demo.com
-          </div>
-        )}
 
         <p style={{ textAlign: "center", marginTop: 16, fontSize: 13, color: "#6b7280" }}>
           {isRegister ? "Already have an account? " : "Don't have an account? "}
