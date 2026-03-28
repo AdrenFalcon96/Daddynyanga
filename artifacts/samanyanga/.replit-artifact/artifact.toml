@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Samanyanga Companion"
+version = "1.0.0"
+id = "artifacts/samanyanga"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21688
+
+[services.development]
+run = "pnpm --filter @workspace/samanyanga run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/samanyanga", "run", "build" ]
+publicDir = "artifacts/samanyanga/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21688"
+BASE_PATH = "/"

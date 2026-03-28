@@ -1,22 +1,24 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Samanyanga Companion API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: ads
+    description: Advertisement operations
+  - name: products
+    description: Farmer product operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +26,99 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /ads:
+    get:
+      operationId: getAds
+      tags: [ads]
+      summary: Get all advertisements
+      responses:
+        "200":
+          description: List of ads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Ad"
+  /advert-requests:
+    post:
+      operationId: createAdvertRequest
+      tags: [ads]
+      summary: Request a custom advertisement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdvertRequestInput"
+      responses:
+        "201":
+          description: Request created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdvertRequest"
+  /products:
+    get:
+      operationId: getProducts
+      tags: [products]
+      summary: Get all products
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [vegetables, fruits, livestock]
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+    post:
+      operationId: createProduct
+      tags: [products]
+      summary: Create a product listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductInput"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+  /products/{id}/request:
+    post:
+      operationId: requestProduct
+      tags: [products]
+      summary: Request a product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProductRequestInput"
+      responses:
+        "201":
+          description: Request submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductRequest"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +128,165 @@ components:
           type: string
       required:
         - status
-
+    Ad:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+          enum: [image, video]
+        url:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - description
+        - type
+        - url
+        - createdAt
+    AdvertRequestInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        description:
+          type: string
+      required:
+        - name
+        - email
+        - description
+    AdvertRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - email
+        - description
+        - createdAt
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [vegetables, fruits, livestock]
+        quantity:
+          type: string
+        price:
+          type: number
+        location:
+          type: string
+        imageUrl:
+          type: string
+        sellerName:
+          type: string
+        sellerPhone:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - category
+        - quantity
+        - price
+        - location
+        - sellerName
+        - createdAt
+    ProductInput:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [vegetables, fruits, livestock]
+        quantity:
+          type: string
+        price:
+          type: number
+        location:
+          type: string
+        imageUrl:
+          type: string
+        sellerName:
+          type: string
+        sellerPhone:
+          type: string
+      required:
+        - name
+        - description
+        - category
+        - quantity
+        - price
+        - location
+        - sellerName
+    ProductRequestInput:
+      type: object
+      properties:
+        buyerName:
+          type: string
+        buyerPhone:
+          type: string
+        message:
+          type: string
+      required:
+        - buyerName
+        - buyerPhone
+    ProductRequest:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        buyerName:
+          type: string
+        buyerPhone:
+          type: string
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - productId
+        - buyerName
+        - buyerPhone
+        - createdAt
