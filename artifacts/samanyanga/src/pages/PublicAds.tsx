@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import AiChatPanel from "@/components/AiChatPanel";
 
 interface Ad {
   id: string;
@@ -231,6 +232,14 @@ export default function PublicAds() {
       </div>
 
       {showRequest && <RequestAdForm onClose={() => setShowRequest(false)} />}
+
+      <AiChatPanel
+        section="public-ads"
+        endpoint="/api/ai/hybrid"
+        placeholder="Ask about submitting an advert or how advertising works..."
+        greeting="Hello! I can help you submit an advert request, understand pricing, or track your advert status on Samanyanga."
+        headerLabel="AgriAI — Adverts"
+      />
     </div>
   );
 }

@@ -168,7 +168,13 @@ export default function Farmer() {
         {tab === "interns" && <InternRequestsTab />}
       </div>
 
-      <AiChatPanel />
+      <AiChatPanel
+        section="farmer"
+        endpoint="/api/ai/hybrid"
+        placeholder="Ask about crops, soil, livestock, prices..."
+        greeting="Hello! I'm your AgriAI assistant. Ask me about crops, livestock, soil health, pest control, or market prices in Zimbabwe."
+        headerLabel="AgriAI — Farmer"
+      />
     </div>
   );
 }

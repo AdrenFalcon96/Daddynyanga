@@ -504,7 +504,7 @@ export default function Admin() {
       <AiChatPanel
         key={tab}
         section={tab}
-        endpoint="/api/ai/admin"
+        endpoint="/api/ai/hybrid"
         placeholder={aiCfg.placeholder}
         greeting={aiCfg.greeting}
         headerLabel={aiCfg.headerLabel}

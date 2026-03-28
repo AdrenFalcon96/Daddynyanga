@@ -46,7 +46,13 @@ export default function Seller() {
         {tab === "marketplace" && <Marketplace />}
       </div>
 
-      <AiChatPanel />
+      <AiChatPanel
+        section="seller"
+        endpoint="/api/ai/hybrid"
+        placeholder="Ask about listing produce, pricing, or reaching buyers..."
+        greeting="Hello! I'm your AgriAI assistant. I can help you list your produce, set competitive prices, and reach buyers across Zimbabwe."
+        headerLabel="AgriAI — Seller"
+      />
     </div>
   );
 }

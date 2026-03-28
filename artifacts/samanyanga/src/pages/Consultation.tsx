@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
+import AiChatPanel from "@/components/AiChatPanel";
 
 const TYPES = [
   { key: "student", label: "🎓 Student", desc: "Academic and study consultation", free: true },
@@ -238,6 +239,14 @@ export default function Consultation() {
           )}
         </div>
       </div>
+
+      <AiChatPanel
+        section="consultation"
+        endpoint="/api/ai/hybrid"
+        placeholder="Ask about consultations, scheduling, or what to prepare..."
+        greeting="Hello! I'm your Consultation assistant. I can help you choose the right consultation type, prepare questions, and understand what to expect."
+        headerLabel="AgriAI — Consultation"
+      />
     </div>
   );
 }

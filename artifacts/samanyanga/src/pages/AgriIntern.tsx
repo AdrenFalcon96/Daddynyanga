@@ -201,7 +201,13 @@ export default function AgriIntern() {
         {tab === "my-applications" && <MyApplications />}
       </div>
 
-      <AiChatPanel />
+      <AiChatPanel
+        section="intern"
+        endpoint="/api/ai/hybrid"
+        placeholder="Ask about your attachment, placement, or agri-career..."
+        greeting="Hello! I'm your AgriAI assistant. I can help with your agricultural attachment application, farm placement procedures, and career advice."
+        headerLabel="AgriAI — Intern"
+      />
     </div>
   );
 }
