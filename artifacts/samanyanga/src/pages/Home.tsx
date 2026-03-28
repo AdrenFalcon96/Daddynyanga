@@ -30,29 +30,27 @@ export default function Home() {
       padding: "24px",
       position: "relative",
     }}>
-      {isAdmin && (
-        <button
-          onClick={() => navigate("/admin")}
-          title="Admin Dashboard"
-          style={{
-            position: "absolute",
-            top: 16,
-            left: 16,
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "rgba(220,38,38,0.15)",
-            border: "1px solid rgba(220,38,38,0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            padding: 0,
-          }}
-        >
-          <span style={{ width: 10, height: 10, borderRadius: "50%", background: "#dc2626", display: "block" }} />
-        </button>
-      )}
+      <button
+        onClick={() => isAdmin ? navigate("/admin") : navigate("/admin-login")}
+        title="Admin"
+        style={{
+          position: "absolute",
+          top: 16,
+          left: 16,
+          width: 28,
+          height: 28,
+          borderRadius: "50%",
+          background: "rgba(220,38,38,0.12)",
+          border: "1px solid rgba(220,38,38,0.35)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        <span style={{ width: 9, height: 9, borderRadius: "50%", background: "#dc2626", display: "block" }} />
+      </button>
 
       <div style={{ textAlign: "center", maxWidth: 600 }}>
         <div style={{ fontSize: 64, marginBottom: 16 }}>🌾</div>
