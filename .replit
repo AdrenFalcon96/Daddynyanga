@@ -53,4 +53,3 @@ channel = "stable-25_05"
 
 [userenv.shared]
 PORT = "8080"
-JWT_SECRET = "e101babd49a20965b8dba72d9bb79f3fd0ce85bd9c9db4fe382525be412aeed4be96425151d001d2a6363f3d86f2b007"
