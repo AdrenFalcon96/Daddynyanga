@@ -20,9 +20,9 @@ const openrouter = process.env.OPENROUTER_API_KEY
     })
   : null;
 
-// ── SISIF.AI base URL (video generation) ──────────────────────────────────
+// ── SISIF.AI (video generation) ───────────────────────────────────────────
 const SISIF_API_KEY = process.env.SISIF_AI_API_KEY || null;
-const SISIF_BASE = "https://api.sisif.ai/v1";
+const SISIF_BASE = "https://sisif.ai/api";
 
 const LOCAL_TIPS: [string, string, string[]][] = [
   ["maize", "Maize grows best in well-drained soil (pH 5.8–7.0). Plant after first rains, spacing 25–30cm. Apply compound D at planting, then AN top-dressing at 6 weeks.", ["farmer", "general", "buyer", "seller"]],
@@ -126,31 +126,55 @@ async function openrouterChat(systemPrompt: string, userMessage: string): Promis
 }
 
 // ── SISIF.AI video generation helper ──────────────────────────────────────
-async function sisifGenerateVideo(prompt: string): Promise<{ videoUrl: string | null; source: string; error?: string }> {
+// API: POST /api/videos/generate/ → {id, status, eta_seconds}
+//      GET  /api/videos/{id}/status/ → {status, progress, video_url}
+async function sisifGenerateVideo(prompt: string): Promise<{ videoUrl: string | null; jobId?: string; source: string; error?: string }> {
   if (!SISIF_API_KEY) {
     return { videoUrl: null, source: "placeholder", error: "SISIF_AI_API_KEY not configured" };
   }
   try {
-    const response = await fetch(`${SISIF_BASE}/video/generate`, {
+    // Step 1 — submit job
+    const submitRes = await fetch(`${SISIF_BASE}/videos/generate/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${SISIF_API_KEY}`,
       },
-      body: JSON.stringify({ prompt, duration: 15, style: "advertising" }),
+      body: JSON.stringify({ prompt, duration: 8, resolution: "540x960" }),
     });
-    if (!response.ok) {
-      const errText = await response.text().catch(() => String(response.status));
-      console.warn(`[SISIF.AI] video generation failed (${response.status}): ${errText}`);
-      return { videoUrl: null, source: "placeholder", error: `API error ${response.status}` };
+    if (!submitRes.ok) {
+      const errText = await submitRes.text().catch(() => String(submitRes.status));
+      console.warn(`[SISIF.AI] submit failed (${submitRes.status}): ${errText}`);
+      return { videoUrl: null, source: "placeholder", error: `Submit error ${submitRes.status}: ${errText}` };
     }
-    const data: any = await response.json();
-    const videoUrl = data?.video_url || data?.url || data?.output || null;
-    if (!videoUrl) {
-      console.warn("[SISIF.AI] response missing video URL:", JSON.stringify(data));
-      return { videoUrl: null, source: "placeholder", error: "No video URL in response" };
+    const job: any = await submitRes.json();
+    const jobId: string = job?.id;
+    if (!jobId) {
+      console.warn("[SISIF.AI] no job ID in response:", JSON.stringify(job));
+      return { videoUrl: null, source: "placeholder", error: "No job ID returned" };
     }
-    return { videoUrl, source: "sisif" };
+    console.log(`[SISIF.AI] job ${jobId} submitted, eta ~${job?.eta_seconds ?? "?"}s`);
+
+    // Step 2 — poll status (up to 30 attempts × 6s = 3 minutes)
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 6000));
+      try {
+        const statusRes = await fetch(`${SISIF_BASE}/videos/${jobId}/status/`, {
+          headers: { Authorization: `Bearer ${SISIF_API_KEY}` },
+        });
+        if (!statusRes.ok) continue;
+        const status: any = await statusRes.json();
+        console.log(`[SISIF.AI] job ${jobId} poll ${i + 1}: status=${status?.status} progress=${status?.progress}`);
+        if (status?.status === "ready" && status?.video_url) {
+          return { videoUrl: status.video_url, jobId, source: "sisif" };
+        }
+        if (status?.status === "failed") {
+          return { videoUrl: null, jobId, source: "placeholder", error: "SISIF job failed" };
+        }
+      } catch { /* keep polling */ }
+    }
+    // Timed out — return job ID so caller can note it
+    return { videoUrl: null, jobId, source: "placeholder", error: "Timed out waiting for video" };
   } catch (err: any) {
     console.warn("[SISIF.AI] request error:", err?.message || err);
     return { videoUrl: null, source: "placeholder", error: err?.message || "Network error" };

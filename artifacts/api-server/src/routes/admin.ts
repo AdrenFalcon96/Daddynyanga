@@ -165,26 +165,49 @@ router.post("/admin/generate-video", adminAuth, async (req, res) => {
   const { requestId, prompt } = req.body;
 
   // Attempt SISIF.AI video generation; fall back to placeholder gracefully
+  // API: POST https://sisif.ai/api/videos/generate/ → {id, status, eta_seconds}
+  //      GET  https://sisif.ai/api/videos/{id}/status/ → {status, progress, video_url}
   let videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
   let videoSource = "placeholder";
   const sisifKey = process.env.SISIF_AI_API_KEY;
   if (sisifKey && prompt) {
     try {
-      const sisifRes = await fetch("https://api.sisif.ai/v1/video/generate", {
+      const submitRes = await fetch("https://sisif.ai/api/videos/generate/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${sisifKey}`,
         },
-        body: JSON.stringify({ prompt, duration: 15, style: "advertising" }),
+        body: JSON.stringify({ prompt, duration: 8, resolution: "540x960" }),
       });
-      if (sisifRes.ok) {
-        const data: any = await sisifRes.json();
-        const generated = data?.video_url || data?.url || data?.output || null;
-        if (generated) { videoUrl = generated; videoSource = "sisif"; }
-        else console.warn("[SISIF.AI] generate-video: no URL in response");
+      if (submitRes.ok) {
+        const job: any = await submitRes.json();
+        const jobId: string = job?.id;
+        if (jobId) {
+          console.log(`[SISIF.AI] admin job ${jobId} submitted, eta ~${job?.eta_seconds ?? "?"}s`);
+          // Poll status (up to 30 × 6s = 3 min)
+          for (let i = 0; i < 30; i++) {
+            await new Promise(r => setTimeout(r, 6000));
+            try {
+              const statusRes = await fetch(`https://sisif.ai/api/videos/${jobId}/status/`, {
+                headers: { Authorization: `Bearer ${sisifKey}` },
+              });
+              if (statusRes.ok) {
+                const st: any = await statusRes.json();
+                console.log(`[SISIF.AI] job ${jobId} poll ${i + 1}: status=${st?.status}`);
+                if (st?.status === "ready" && st?.video_url) {
+                  videoUrl = st.video_url; videoSource = "sisif"; break;
+                }
+                if (st?.status === "failed") break;
+              }
+            } catch { /* keep polling */ }
+          }
+        } else {
+          console.warn("[SISIF.AI] generate-video: no job ID in response");
+        }
       } else {
-        console.warn(`[SISIF.AI] generate-video HTTP ${sisifRes.status}`);
+        const errText = await submitRes.text().catch(() => String(submitRes.status));
+        console.warn(`[SISIF.AI] generate-video HTTP ${submitRes.status}: ${errText}`);
       }
     } catch (e: any) {
       console.warn("[SISIF.AI] generate-video error:", e?.message || e);
