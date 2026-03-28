@@ -163,7 +163,34 @@ router.post("/admin/generate-image", adminAuth, async (req, res) => {
 
 router.post("/admin/generate-video", adminAuth, async (req, res) => {
   const { requestId, prompt } = req.body;
-  const videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+
+  // Attempt SISIF.AI video generation; fall back to placeholder gracefully
+  let videoUrl = "https://www.w3schools.com/html/mov_bbb.mp4";
+  let videoSource = "placeholder";
+  const sisifKey = process.env.SISIF_AI_API_KEY;
+  if (sisifKey && prompt) {
+    try {
+      const sisifRes = await fetch("https://api.sisif.ai/v1/video/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${sisifKey}`,
+        },
+        body: JSON.stringify({ prompt, duration: 15, style: "advertising" }),
+      });
+      if (sisifRes.ok) {
+        const data: any = await sisifRes.json();
+        const generated = data?.video_url || data?.url || data?.output || null;
+        if (generated) { videoUrl = generated; videoSource = "sisif"; }
+        else console.warn("[SISIF.AI] generate-video: no URL in response");
+      } else {
+        console.warn(`[SISIF.AI] generate-video HTTP ${sisifRes.status}`);
+      }
+    } catch (e: any) {
+      console.warn("[SISIF.AI] generate-video error:", e?.message || e);
+    }
+  }
+
   try {
     if (requestId) {
       await query(
@@ -179,7 +206,7 @@ router.post("/admin/generate-video", adminAuth, async (req, res) => {
         );
       }
     }
-    res.json({ videoUrl });
+    res.json({ videoUrl, source: videoSource });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

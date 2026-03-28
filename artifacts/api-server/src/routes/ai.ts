@@ -3,9 +3,26 @@ import OpenAI from "openai";
 
 const router: IRouter = Router();
 
+// ── OpenAI client (hybrid / student / admin chat) ──────────────────────────
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
+
+// ── OpenRouter client (admin & marketing AI) ──────────────────────────────
+const openrouter = process.env.OPENROUTER_API_KEY
+  ? new OpenAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: "https://openrouter.ai/api/v1",
+      defaultHeaders: {
+        "HTTP-Referer": "https://samanyanga.replit.app",
+        "X-Title": "Samanyanga Companion",
+      },
+    })
+  : null;
+
+// ── SISIF.AI base URL (video generation) ──────────────────────────────────
+const SISIF_API_KEY = process.env.SISIF_AI_API_KEY || null;
+const SISIF_BASE = "https://api.sisif.ai/v1";
 
 const LOCAL_TIPS: [string, string, string[]][] = [
   ["maize", "Maize grows best in well-drained soil (pH 5.8–7.0). Plant after first rains, spacing 25–30cm. Apply compound D at planting, then AN top-dressing at 6 weeks.", ["farmer", "general", "buyer", "seller"]],
@@ -70,6 +87,7 @@ const SECTION_FALLBACKS: Record<string, string> = {
   general: "I'm your Samanyanga Companion assistant. Ask me about farming, buying, selling, studying, or anything on the platform.",
 };
 
+// ── OpenAI chat helper (hybrid AI) ────────────────────────────────────────
 async function openaiChat(systemPrompt: string, userMessage: string): Promise<string | null> {
   if (!openai) return null;
   try {
@@ -82,11 +100,73 @@ async function openaiChat(systemPrompt: string, userMessage: string): Promise<st
       max_tokens: 300,
     });
     return res.choices[0]?.message?.content || null;
-  } catch {
+  } catch (err: any) {
+    console.warn("[OpenAI] chat failed (quota/plan):", err?.message || err);
     return null;
   }
 }
 
+// ── OpenRouter chat helper (admin & marketing AI) ─────────────────────────
+async function openrouterChat(systemPrompt: string, userMessage: string): Promise<string | null> {
+  if (!openrouter) return null;
+  try {
+    const res = await openrouter.chat.completions.create({
+      model: "openai/gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      max_tokens: 300,
+    });
+    return res.choices[0]?.message?.content || null;
+  } catch (err: any) {
+    console.warn("[OpenRouter] chat failed (quota/plan):", err?.message || err);
+    return null;
+  }
+}
+
+// ── SISIF.AI video generation helper ──────────────────────────────────────
+async function sisifGenerateVideo(prompt: string): Promise<{ videoUrl: string | null; source: string; error?: string }> {
+  if (!SISIF_API_KEY) {
+    return { videoUrl: null, source: "placeholder", error: "SISIF_AI_API_KEY not configured" };
+  }
+  try {
+    const response = await fetch(`${SISIF_BASE}/video/generate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SISIF_API_KEY}`,
+      },
+      body: JSON.stringify({ prompt, duration: 15, style: "advertising" }),
+    });
+    if (!response.ok) {
+      const errText = await response.text().catch(() => String(response.status));
+      console.warn(`[SISIF.AI] video generation failed (${response.status}): ${errText}`);
+      return { videoUrl: null, source: "placeholder", error: `API error ${response.status}` };
+    }
+    const data: any = await response.json();
+    const videoUrl = data?.video_url || data?.url || data?.output || null;
+    if (!videoUrl) {
+      console.warn("[SISIF.AI] response missing video URL:", JSON.stringify(data));
+      return { videoUrl: null, source: "placeholder", error: "No video URL in response" };
+    }
+    return { videoUrl, source: "sisif" };
+  } catch (err: any) {
+    console.warn("[SISIF.AI] request error:", err?.message || err);
+    return { videoUrl: null, source: "placeholder", error: err?.message || "Network error" };
+  }
+}
+
+// ── /ai/status — reports which keys are active ────────────────────────────
+router.get("/ai/status", (_req, res) => {
+  res.json({
+    openai: !!openai,
+    openrouter: !!openrouter,
+    sisif: !!SISIF_API_KEY,
+  });
+});
+
+// ── /ai/hybrid — keyword fallback → OpenAI → local ────────────────────────
 router.post("/ai/hybrid", async (req, res) => {
   const { message, section = "general" } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
@@ -107,6 +187,7 @@ router.post("/ai/hybrid", async (req, res) => {
   res.json({ reply: aiReply || fallback, source: aiReply ? "openai" : "local" });
 });
 
+// ── /ai/chat — farmer shortcut ─────────────────────────────────────────────
 router.post("/ai/chat", async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
@@ -115,6 +196,7 @@ router.post("/ai/chat", async (req, res) => {
   return router.handle(Object.assign(fakeReq, { method: "POST", url: "/ai/hybrid" }), fakeRes, () => {});
 });
 
+// ── /ai/student — ZIMSEC study assistant ──────────────────────────────────
 router.post("/ai/student", async (req, res) => {
   const { message, context } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
@@ -122,20 +204,52 @@ router.post("/ai/student", async (req, res) => {
   for (const [key, tip, sections] of LOCAL_TIPS) {
     if (lower.includes(key) && sections.includes("student")) {
       const aiReply = await openaiChat(SECTION_PROMPTS.student, message);
-      return res.json({ reply: aiReply || (context ? `[${context}] ${tip}` : tip) });
+      return res.json({ reply: aiReply || (context ? `[${context}] ${tip}` : tip), source: aiReply ? "openai" : "local" });
     }
   }
   const aiReply = await openaiChat(SECTION_PROMPTS.student, message);
-  res.json({ reply: aiReply || `I'm here to help with your ${context || "studies"}. Ask me about any subject — mathematics, science, English, history, or exam preparation.` });
+  res.json({
+    reply: aiReply || `I'm here to help with your ${context || "studies"}. Ask me about any subject — mathematics, science, English, history, or exam preparation.`,
+    source: aiReply ? "openai" : "local",
+  });
 });
 
+// ── /ai/admin — admin & marketing via OpenRouter, fallback to OpenAI ──────
 router.post("/ai/admin", async (req, res) => {
   const { message, section } = req.body;
   if (!message) return res.status(400).json({ error: "message required" });
   const sectionKey = section || "admin";
   const systemPrompt = SECTION_PROMPTS[sectionKey] || SECTION_PROMPTS.admin;
-  const aiReply = await openaiChat(systemPrompt, message);
-  res.json({ reply: aiReply || `I can help you manage ${sectionKey}. Ask about approvals, payments, consultations, or any platform feature.` });
+
+  // Try OpenRouter first (admin/marketing tier), fall back to OpenAI, then local
+  const aiReply = (await openrouterChat(systemPrompt, message)) || (await openaiChat(systemPrompt, message));
+  const source = aiReply
+    ? openrouter ? "openrouter" : "openai"
+    : "local";
+
+  res.json({
+    reply: aiReply || `I can help you manage ${sectionKey}. Ask about approvals, payments, consultations, or any platform feature.`,
+    source,
+  });
+});
+
+// ── /ai/generate-video — SISIF.AI video generation ────────────────────────
+router.post("/ai/generate-video", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: "prompt required" });
+
+  const result = await sisifGenerateVideo(prompt);
+
+  if (result.videoUrl) {
+    return res.json({ videoUrl: result.videoUrl, source: result.source });
+  }
+
+  // Graceful fallback — return placeholder so the app never breaks
+  res.json({
+    videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
+    source: "placeholder",
+    warning: result.error || "Video generation unavailable; using placeholder",
+  });
 });
 
 export default router;
