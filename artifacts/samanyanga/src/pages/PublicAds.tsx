@@ -40,6 +40,7 @@ function ShareButtons({ ad }: { ad: Ad }) {
 function AdCard({ ad, onView }: { ad: Ad; onView: (id: string) => void }) {
   const imageUrl = ad.image_url || ad.imageUrl;
   const videoUrl = ad.video_url || ad.videoUrl;
+  const isVideoAd = ad.type === "video" || !!videoUrl;
   return (
     <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", overflow: "hidden", border: "1px solid #e5e7eb" }}>
       <div style={{ display: "flex", height: 200 }}>
@@ -50,11 +51,20 @@ function AdCard({ ad, onView }: { ad: Ad; onView: (id: string) => void }) {
             <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#d1fae5,#a7f3d0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📣</div>
           )}
         </div>
-        {videoUrl && (
-          <div style={{ flex: 1, background: "#000" }}>
-            <video controls style={{ width: "100%", height: "100%", objectFit: "cover" }}>
-              <source src={videoUrl} />
-            </video>
+        {isVideoAd && (
+          <div style={{ flex: 1, background: "#000", position: "relative" }}>
+            {videoUrl ? (
+              <video controls style={{ width: "100%", height: "100%", objectFit: "cover" }}>
+                <source src={videoUrl} />
+              </video>
+            ) : (
+              <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <div style={{ width: 52, height: 52, background: "rgba(255,255,255,0.15)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <span style={{ fontSize: 24, marginLeft: 4 }}>▶</span>
+                </div>
+                <p style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, margin: 0, textAlign: "center", padding: "0 12px" }}>Video coming soon</p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -221,16 +231,36 @@ export default function PublicAds() {
                       </div>
                     </div>
                   )}
-                  {videoAds.length > 0 && (
-                    <div>
-                      <h2 style={{ fontSize: 16, fontWeight: 800, color: "#374151", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
-                        🎬 Video Adverts <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>({videoAds.length})</span>
-                      </h2>
+                  <div>
+                    <h2 style={{ fontSize: 16, fontWeight: 800, color: "#374151", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+                      🎬 Video Adverts <span style={{ fontSize: 13, fontWeight: 500, color: "#9ca3af" }}>({videoAds.length})</span>
+                    </h2>
+                    {videoAds.length > 0 ? (
                       <div style={{ display: "grid", gap: 20 }}>
                         {videoAds.map(ad => <AdCard key={ad.id} ad={ad} onView={(id) => navigate(`/adverts/${id}`)} />)}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 12px rgba(0,0,0,0.07)" }}>
+                        <div style={{ display: "flex", height: 200 }}>
+                          <div style={{ flex: 1, background: "linear-gradient(135deg,#d1fae5,#a7f3d0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📣</div>
+                          <div style={{ flex: 1, background: "#111827", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                            <div style={{ width: 60, height: 60, background: "rgba(255,255,255,0.12)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <span style={{ fontSize: 28, marginLeft: 5 }}>▶</span>
+                            </div>
+                            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 12, margin: 0, textAlign: "center", padding: "0 16px" }}>Video adverts space available</p>
+                          </div>
+                        </div>
+                        <div style={{ padding: "14px 18px" }}>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#374151" }}>Advertise Your Business Here</p>
+                          <p style={{ margin: "4px 0 10px", fontSize: 13, color: "#6b7280" }}>Video adverts reach more customers. Request a video advert today.</p>
+                          <button onClick={() => setShowRequest(true)}
+                            style={{ padding: "7px 16px", background: "#7c3aed", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                            🎬 Request Video Ad
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   {imageAds.length === 0 && videoAds.length === 0 && (
                     <div style={{ display: "grid", gap: 20 }}>
                       {ads.map(ad => <AdCard key={ad.id} ad={ad} onView={(id) => navigate(`/adverts/${id}`)} />)}

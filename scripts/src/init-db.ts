@@ -60,6 +60,7 @@ async function run() {
         phone TEXT,
         message TEXT NOT NULL,
         type TEXT NOT NULL DEFAULT 'standard',
+        advert_type TEXT NOT NULL DEFAULT 'image',
         status TEXT NOT NULL DEFAULT 'pending',
         payment_status TEXT NOT NULL DEFAULT 'unpaid',
         generated_image_url TEXT,

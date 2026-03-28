@@ -176,6 +176,7 @@ function RevenueTab() {
     mutationFn: ({ source, id, status }: { source: string; id: string; status: string }) =>
       apiRequest("PATCH", `/api/admin/transactions/${source}/${id}`, { payment_status: status }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["/api/admin/transactions"] }); qc.invalidateQueries({ queryKey: ["/api/admin/revenue"] }); },
+    onError: (err: any) => alert("Payment update failed: " + (err?.message || "Unknown error")),
   });
 
   if (isLoading) return <p style={{ color: "#9ca3af" }}>Loading revenue data...</p>;
@@ -465,11 +466,13 @@ export default function Admin() {
   const updateAdvertStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => apiRequest("PATCH", `/api/admin/advert-requests/${id}`, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/advert-requests"] }),
+    onError: (err: any) => alert("Update failed: " + (err?.message || "Unknown error")),
   });
 
   const updateProductStatus = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => apiRequest("PATCH", `/api/admin/product-requests/${id}`, { status }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/product-requests"] }),
+    onError: (err: any) => alert("Update failed: " + (err?.message || "Unknown error")),
   });
 
   const { data: internRequests = [], isLoading: loadingInterns } = useQuery<any[]>({
@@ -482,6 +485,7 @@ export default function Admin() {
     mutationFn: ({ id, status, response }: { id: string; status: string; response?: string }) =>
       apiRequest("PATCH", `/api/intern-attachments/${id}`, { status, response }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/intern-attachments"] }),
+    onError: (err: any) => alert("Update failed: " + (err?.message || "Unknown error")),
   });
 
   const { data: consultations = [], isLoading: loadingConsultations } = useQuery<Consultation[]>({
@@ -494,6 +498,7 @@ export default function Admin() {
     mutationFn: ({ id, response }: { id: string; response: string }) =>
       apiRequest("PATCH", `/api/admin/consultations/${id}`, { response, status: "responded" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/admin/consultations"] }),
+    onError: (err: any) => alert("Failed to send response: " + (err?.message || "Unknown error")),
   });
 
   const handleGenerate = async (requestId: string, type: "image" | "video") => {
