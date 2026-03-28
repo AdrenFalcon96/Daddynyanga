@@ -3,7 +3,7 @@ import { createHmac } from "crypto";
 import { query } from "../lib/db";
 
 const router: IRouter = Router();
-const SECRET = "samanyanga-fixed-secret-2024";
+const SECRET = process.env.JWT_SECRET || "samanyanga-fixed-secret-2024";
 
 function hashPassword(password: string): string {
   return createHmac("sha256", SECRET).update(password).digest("hex");

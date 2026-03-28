@@ -101,15 +101,72 @@ async function run() {
         title TEXT NOT NULL,
         description TEXT,
         grade TEXT NOT NULL,
-        subject TEXT NOT NULL,
+        subject TEXT,
         file_type TEXT NOT NULL,
         file_data TEXT,
         file_name TEXT,
         mime_type TEXT,
         uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS subjects (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name TEXT NOT NULL,
+        grade TEXT NOT NULL,
+        category TEXT,
+        active BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      );
+
+      CREATE UNIQUE INDEX IF NOT EXISTS subjects_name_grade_idx ON subjects (LOWER(name), grade);
     `);
-    console.log("All tables created/verified.");
+
+    // Seed default subjects
+    const defaultSubjects: [string, string, string][] = [
+      ["Mathematics", "grade7", "Core"],
+      ["English Language", "grade7", "Core"],
+      ["Science", "grade7", "Core"],
+      ["Social Studies", "grade7", "Humanities"],
+      ["Shona", "grade7", "Languages"],
+      ["Ndebele", "grade7", "Languages"],
+      ["General Paper", "grade7", "Core"],
+      ["Mathematics", "olevel", "Core"],
+      ["English Language", "olevel", "Core"],
+      ["Biology", "olevel", "Sciences"],
+      ["Chemistry", "olevel", "Sciences"],
+      ["Physics", "olevel", "Sciences"],
+      ["Combined Science", "olevel", "Sciences"],
+      ["History", "olevel", "Humanities"],
+      ["Geography", "olevel", "Humanities"],
+      ["Commerce", "olevel", "Business"],
+      ["Accounts", "olevel", "Business"],
+      ["Computer Science", "olevel", "Technology"],
+      ["Art", "olevel", "Arts"],
+      ["Agriculture", "olevel", "Technical"],
+      ["Pure Mathematics", "alevel", "Core"],
+      ["Applied Mathematics", "alevel", "Core"],
+      ["Further Mathematics", "alevel", "Core"],
+      ["Biology", "alevel", "Sciences"],
+      ["Chemistry", "alevel", "Sciences"],
+      ["Physics", "alevel", "Sciences"],
+      ["Economics", "alevel", "Business"],
+      ["Accounting", "alevel", "Business"],
+      ["Business Studies", "alevel", "Business"],
+      ["History", "alevel", "Humanities"],
+      ["English Literature", "alevel", "Humanities"],
+      ["Geography", "alevel", "Humanities"],
+      ["Computer Science", "alevel", "Technology"],
+      ["Agriculture", "alevel", "Technical"],
+    ];
+
+    for (const [name, grade, category] of defaultSubjects) {
+      await client.query(
+        `INSERT INTO subjects (name, grade, category) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`,
+        [name, grade, category]
+      );
+    }
+
+    console.log("All tables created/verified and subjects seeded.");
   } finally {
     client.release();
     await pool.end();

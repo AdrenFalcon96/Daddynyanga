@@ -9,11 +9,28 @@ const LEVELS = [
   { key: "alevel", label: "A Level" },
 ];
 
-const SUBJECTS: Record<string, string[]> = {
-  grade7: ["Mathematics", "English", "Science", "Social Studies", "Shona", "Ndebele"],
-  olevel: ["Mathematics", "English Language", "Biology", "Chemistry", "Physics", "History", "Geography", "Commerce", "Accounts"],
-  alevel: ["Pure Mathematics", "Applied Mathematics", "Biology", "Chemistry", "Physics", "Economics", "History", "English Literature"],
+const SUBJECTS_FALLBACK: Record<string, string[]> = {
+  grade7: ["Mathematics", "English Language", "Science", "Social Studies", "Shona", "Ndebele"],
+  olevel: ["Mathematics", "English Language", "Biology", "Chemistry", "Physics", "History", "Geography", "Commerce", "Accounts", "Computer Science"],
+  alevel: ["Pure Mathematics", "Applied Mathematics", "Biology", "Chemistry", "Physics", "Economics", "History", "English Literature", "Computer Science"],
 };
+
+function useSubjects() {
+  const [subjects, setSubjects] = useState<Record<string, string[]>>(SUBJECTS_FALLBACK);
+  useEffect(() => {
+    fetch("/api/subjects")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { name: string; grade: string }[] | null) => {
+        if (!data || !Array.isArray(data)) return;
+        const grouped: Record<string, string[]> = { grade7: [], olevel: [], alevel: [] };
+        data.forEach(s => { if (grouped[s.grade]) grouped[s.grade].push(s.name); });
+        const hasData = Object.values(grouped).some(arr => arr.length > 0);
+        if (hasData) setSubjects(grouped);
+      })
+      .catch(() => { /* keep fallback */ });
+  }, []);
+  return subjects;
+}
 
 interface Message { role: "user" | "ai"; text: string; }
 interface StudyMaterial {
@@ -75,6 +92,7 @@ function MaterialViewer({ m }: { m: StudyMaterial }) {
 
 export default function StudentCompanion() {
   const auth = useAuthGuard();
+  const subjects = useSubjects();
   const [, navigate] = useLocation();
   const [mainTab, setMainTab] = useState<"chat" | "materials">("chat");
   const [level, setLevel] = useState("olevel");
@@ -181,7 +199,7 @@ export default function StudentCompanion() {
             <select value={subject} onChange={e => setSubject(e.target.value)}
               style={{ padding: "5px 12px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, background: "#fff" }}>
               <option value="">All Subjects</option>
-              {SUBJECTS[level]?.map(s => <option key={s} value={s}>{s}</option>)}
+              {subjects[level]?.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
           </div>
 
@@ -229,7 +247,7 @@ export default function StudentCompanion() {
               <select value={matSubject} onChange={e => setMatSubject(e.target.value)}
                 style={{ padding: "5px 12px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, background: "#fff" }}>
                 <option value="">All Subjects</option>
-                {SUBJECTS[matLevel]?.map(s => <option key={s} value={s}>{s}</option>)}
+                {subjects[matLevel]?.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
               <button onClick={fetchMaterials} style={{ padding: "5px 12px", background: "#f3f4f6", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, cursor: "pointer" }}>↺ Refresh</button>
             </div>

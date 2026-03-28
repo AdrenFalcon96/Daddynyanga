@@ -2,23 +2,13 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
-const DEMO_ACCOUNTS = [
-  { role: "Admin", email: "admin@demo.com", password: "demo123" },
-  { role: "Farmer", email: "farmer@demo.com", password: "demo123" },
-  { role: "Student", email: "student@demo.com", password: "demo123" },
-  { role: "Buyer", email: "buyer@demo.com", password: "demo123" },
-  { role: "Seller", email: "seller@demo.com", password: "demo123" },
-  { role: "Intern", email: "intern@demo.com", password: "demo123" },
-];
-
 export default function AdminLogin() {
   const [, navigate] = useLocation();
-  const [email, setEmail] = useState("admin@demo.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,17 +51,16 @@ export default function AdminLogin() {
       fontFamily: "system-ui, sans-serif",
       padding: 16,
     }}>
-      <div style={{ width: "100%", maxWidth: 480 }}>
+      <div style={{ width: "100%", maxWidth: 420 }}>
         <div style={{
           background: "rgba(255,255,255,0.97)",
           borderRadius: 12,
           padding: 32,
-          boxShadow: "0 8px 40px rgba(0,0,0,0.3)",
-          marginBottom: 16,
+          boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
         }}>
-          <div style={{ textAlign: "center", marginBottom: 24 }}>
-            <div style={{ fontSize: 40 }}>🛡️</div>
-            <h2 style={{ margin: "8px 0 4px", fontSize: 22, fontWeight: 800, color: "#1e1b4b" }}>Admin Portal</h2>
+          <div style={{ textAlign: "center", marginBottom: 28 }}>
+            <div style={{ fontSize: 44 }}>🛡️</div>
+            <h2 style={{ margin: "10px 0 4px", fontSize: 22, fontWeight: 800, color: "#1e1b4b" }}>Admin Portal</h2>
             <p style={{ margin: 0, fontSize: 13, color: "#6b7280" }}>Samanyanga Companion — Restricted Access</p>
           </div>
 
@@ -91,9 +80,10 @@ export default function AdminLogin() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="admin@example.com"
                 style={inputStyle}
+                autoComplete="username"
               />
             </div>
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 20 }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Password</label>
               <div style={{ position: "relative", marginTop: 4 }}>
                 <input
@@ -103,6 +93,7 @@ export default function AdminLogin() {
                   onChange={e => setPassword(e.target.value)}
                   placeholder="••••••••"
                   style={{ ...inputStyle, marginTop: 0, paddingRight: 48 }}
+                  autoComplete="current-password"
                 />
                 <button type="button" onClick={() => setShowPassword(v => !v)}
                   style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#6b7280", padding: 0 }}>
@@ -116,47 +107,20 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <p style={{ textAlign: "center", marginTop: 16, fontSize: 13 }}>
+          <div style={{ textAlign: "center", marginTop: 20, paddingTop: 16, borderTop: "1px solid #f3f4f6" }}>
             <button onClick={() => navigate("/")} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 13 }}>
               ← Back to Home
             </button>
-          </p>
+            <span style={{ color: "#d1d5db", margin: "0 10px" }}>|</span>
+            <button onClick={() => navigate("/login")} style={{ background: "none", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 13 }}>
+              User Login
+            </button>
+          </div>
         </div>
 
-        <div style={{
-          background: "rgba(255,255,255,0.08)",
-          border: "1px solid rgba(255,255,255,0.2)",
-          borderRadius: 10,
-          padding: 16,
-          backdropFilter: "blur(6px)",
-        }}>
-          <button
-            onClick={() => setShowDemoAccounts(v => !v)}
-            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: 0 }}
-          >
-            <p style={{ color: "#c7d2fe", fontWeight: 700, fontSize: 13, margin: 0 }}>🔑 Platform Demo Accounts</p>
-            <span style={{ color: "#a5b4fc", fontSize: 12 }}>{showDemoAccounts ? "▲ Hide" : "▼ Show"}</span>
-          </button>
-
-          {showDemoAccounts && (
-            <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
-              {DEMO_ACCOUNTS.map(({ role, email: demoEmail, password: demoPass }) => (
-                <div key={demoEmail}
-                  onClick={() => { setEmail(demoEmail); setPassword(demoPass); }}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.1)", borderRadius: 6, cursor: "pointer" }}
-                  title="Click to fill credentials"
-                >
-                  <span style={{ color: "#e0e7ff", fontSize: 13, fontWeight: 600 }}>{role}</span>
-                  <span style={{ color: "#a5b4fc", fontSize: 12 }}>{demoEmail}</span>
-                  <span style={{ color: "#818cf8", fontSize: 12 }}>
-                    <code style={{ background: "rgba(0,0,0,0.2)", padding: "1px 6px", borderRadius: 4 }}>{demoPass}</code>
-                  </span>
-                </div>
-              ))}
-              <p style={{ margin: "6px 0 0", fontSize: 11, color: "#818cf8", textAlign: "center" }}>Click any row to auto-fill credentials</p>
-            </div>
-          )}
-        </div>
+        <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 16 }}>
+          Demo credentials are available in the Admin Dashboard → Security &amp; Access
+        </p>
       </div>
     </div>
   );
