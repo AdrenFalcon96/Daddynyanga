@@ -1,142 +1,106 @@
 import { Router, type IRouter } from "express";
-import { randomUUID } from "crypto";
+import { query } from "../lib/db";
 
 const router: IRouter = Router();
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  quantity: string;
-  price: number;
-  location: string;
-  imageUrl?: string;
-  sellerName: string;
-  sellerPhone?: string;
-  createdAt: Date;
+async function seedProducts() {
+  const check = await query("SELECT count(*) FROM products");
+  if (Number(check.rows[0].count) > 0) return;
+  await query(`
+    INSERT INTO products (name, category, description, price, quantity, location, image_url, seller_name, seller_phone, status)
+    VALUES
+      ('Fresh Maize', 'Vegetables', 'Freshly harvested open-pollinated maize, sun-dried. Available in 50kg bags.', 25, '500kg', 'Harare',
+       'https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=400', 'Tariro Dube', '263771234567', 'available'),
+      ('Hereford Cattle', 'Livestock', 'Grade A Hereford cattle, 18 months old, pasture-raised. Ideal for beef production.', 850, '5 head', 'Bulawayo',
+       'https://images.unsplash.com/photo-1546445317-29f4545e9d53?w=400', 'Munyaradzi Mhuri', '263772345678', 'available'),
+      ('Organic Tomatoes', 'Vegetables', 'Pesticide-free organic tomatoes, various sizes. Perfect for resale or food processing.', 12, '200kg', 'Mutare',
+       'https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?w=400', 'Chiedza Farm', '263773456789', 'available'),
+      ('Mango (Tommy Atkins)', 'Fruits', 'Premium export-grade mangoes from Muzarabani. Sweet, firm, and pest-free.', 18, '2 tonnes', 'Muzarabani',
+       'https://images.unsplash.com/photo-1553279768-865429fa0078?w=400', 'Blessing Orchards', '263774567890', 'available')
+  `);
 }
 
-interface ProductRequest {
-  id: string;
-  productId: string;
-  buyerName: string;
-  buyerPhone: string;
-  message?: string;
-  createdAt: Date;
-}
+seedProducts().catch(console.error);
 
-const products: Product[] = [
-  {
-    id: "1",
-    name: "Fresh Maize",
-    description: "Freshly harvested open-pollinated maize, sun-dried. Available in 50kg bags.",
-    category: "Vegetables",
-    quantity: "500kg",
-    price: 25,
-    location: "Harare",
-    imageUrl: "https://images.unsplash.com/photo-1604977042946-1eecc30f269e?w=400",
-    sellerName: "Tariro Dube",
-    sellerPhone: "263771234567",
-    createdAt: new Date(),
-  },
-  {
-    id: "2",
-    name: "Hereford Cattle",
-    description: "Grade A Hereford cattle, 18 months old, pasture-raised. Ideal for beef production.",
-    category: "Livestock",
-    quantity: "5 head",
-    price: 850,
-    location: "Bulawayo",
-    imageUrl: "https://images.unsplash.com/photo-1546445317-29f4545e9d53?w=400",
-    sellerName: "Munyaradzi Mhuri",
-    sellerPhone: "263772345678",
-    createdAt: new Date(),
-  },
-  {
-    id: "3",
-    name: "Organic Tomatoes",
-    description: "Pesticide-free organic tomatoes, various sizes. Perfect for resale or food processing.",
-    category: "Vegetables",
-    quantity: "200kg",
-    price: 12,
-    location: "Mutare",
-    imageUrl: "https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?w=400",
-    sellerName: "Chiedza Farm",
-    sellerPhone: "263773456789",
-    createdAt: new Date(),
-  },
-  {
-    id: "4",
-    name: "Mango (Tommy Atkins)",
-    description: "Premium export-grade mangoes from Muzarabani. Sweet, firm, and pest-free.",
-    category: "Fruits",
-    quantity: "2 tonnes",
-    price: 18,
-    location: "Muzarabani",
-    imageUrl: "https://images.unsplash.com/photo-1553279768-865429fa0078?w=400",
-    sellerName: "Blessing Orchards",
-    sellerPhone: "263774567890",
-    createdAt: new Date(),
-  },
-];
-
-const productRequests: ProductRequest[] = [];
-
-router.get("/products", (req, res) => {
+router.get("/products", async (req, res) => {
   const { category } = req.query;
-  let result = products;
-  if (category && category !== "All") {
-    result = products.filter(p => p.category.toLowerCase() === String(category).toLowerCase());
+  try {
+    let sql = "SELECT * FROM products";
+    const params: string[] = [];
+    if (category && category !== "All") {
+      sql += " WHERE LOWER(category) = LOWER($1)";
+      params.push(String(category));
+    }
+    sql += " ORDER BY created_at DESC";
+    const result = await query(sql, params);
+    res.json(result.rows);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
-  res.json(result);
 });
 
-router.get("/products/:id", (req, res) => {
-  const product = products.find(p => p.id === req.params.id);
-  if (!product) return res.status(404).json({ error: "Product not found" });
-  res.json(product);
+router.get("/products/:id", async (req, res) => {
+  try {
+    const result = await query("SELECT * FROM products WHERE id = $1", [req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Product not found" });
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post("/products", (req, res) => {
-  const { name, description, category, quantity, price, location, imageUrl, sellerName, sellerPhone } = req.body;
-  if (!name || !description || !category || !quantity || price === undefined || !location || !sellerName) {
+router.post("/products", async (req, res) => {
+  const { name, description, category, quantity, price, location, imageUrl, image_url, sellerName, seller_name, sellerPhone, seller_phone } = req.body;
+  const imgUrl = imageUrl || image_url || null;
+  const sName = sellerName || seller_name;
+  const sPhone = sellerPhone || seller_phone || null;
+  if (!name || !description || !category || !quantity || price === undefined || !location || !sName) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-  const product: Product = {
-    id: randomUUID(),
-    name,
-    description,
-    category,
-    quantity,
-    price: Number(price),
-    location,
-    imageUrl,
-    sellerName,
-    sellerPhone,
-    createdAt: new Date(),
-  };
-  products.push(product);
-  res.status(201).json(product);
+  try {
+    const result = await query(
+      `INSERT INTO products (name, description, category, quantity, price, location, image_url, seller_name, seller_phone, status)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'available') RETURNING *`,
+      [name, description, category, quantity, Number(price), location, imgUrl, sName, sPhone]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-router.post("/products/:id/request", (req, res) => {
-  const product = products.find(p => p.id === req.params.id);
-  if (!product) return res.status(404).json({ error: "Product not found" });
-  const { buyerName, buyerPhone, message } = req.body;
-  if (!buyerName || !buyerPhone) {
+router.post("/products/:id/request", async (req, res) => {
+  const { buyerName, buyer_name, buyerPhone, buyer_phone, message } = req.body;
+  const bName = buyerName || buyer_name;
+  const bPhone = buyerPhone || buyer_phone;
+  if (!bName || !bPhone) {
     return res.status(400).json({ error: "buyerName and buyerPhone are required" });
   }
-  const request: ProductRequest = {
-    id: randomUUID(),
-    productId: req.params.id,
-    buyerName,
-    buyerPhone,
-    message,
-    createdAt: new Date(),
-  };
-  productRequests.push(request);
-  res.status(201).json(request);
+  try {
+    const prod = await query("SELECT * FROM products WHERE id = $1", [req.params.id]);
+    if (prod.rows.length === 0) return res.status(404).json({ error: "Product not found" });
+    const result = await query(
+      `INSERT INTO product_requests (product_id, buyer_name, buyer_phone, message, status)
+       VALUES ($1, $2, $3, $4, 'pending') RETURNING *`,
+      [req.params.id, bName, bPhone, message || null]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.patch("/products/:id/status", async (req, res) => {
+  const { status } = req.body;
+  const allowed = ["available", "sold", "reserved"];
+  if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status" });
+  try {
+    const result = await query("UPDATE products SET status = $1 WHERE id = $2 RETURNING *", [status, req.params.id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: "Product not found" });
+    res.json(result.rows[0]);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

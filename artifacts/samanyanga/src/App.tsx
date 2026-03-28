@@ -5,10 +5,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
 import PublicAds from "@/pages/PublicAds";
+import AdvertDetail from "@/pages/AdvertDetail";
 import Farmer from "@/pages/Farmer";
 import Buyer from "@/pages/Buyer";
 import Seller from "@/pages/Seller";
 import StudentCompanion from "@/pages/StudentCompanion";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient({
@@ -24,11 +26,12 @@ function Router() {
       <Route path="/login" component={Login} />
       <Route path="/register" component={Login} />
       <Route path="/public-ads" component={PublicAds} />
-      <Route path="/public-ads/:id" component={PublicAds} />
+      <Route path="/adverts/:id" component={AdvertDetail} />
       <Route path="/farmer" component={Farmer} />
       <Route path="/buyer" component={Buyer} />
       <Route path="/seller" component={Seller} />
       <Route path="/student-companion" component={StudentCompanion} />
+      <Route path="/admin" component={Admin} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -7,12 +7,11 @@ interface Ad {
   id: string;
   title: string;
   description: string;
+  image_url?: string;
   imageUrl?: string;
+  video_url?: string;
   videoUrl?: string;
   whatsapp?: string;
-  facebook?: string;
-  instagram?: string;
-  twitter?: string;
 }
 
 function ShareButtons({ ad }: { ad: Ad }) {
@@ -21,30 +20,14 @@ function ShareButtons({ ad }: { ad: Ad }) {
   const links = [
     { label: "WhatsApp", color: "#25D366", href: `https://wa.me/?text=${shareText}%20${url}`, icon: "💬" },
     { label: "Facebook", color: "#1877F2", href: `https://facebook.com/sharer/sharer.php?u=${url}`, icon: "📘" },
-    { label: "Instagram", color: "#E1306C", href: `https://instagram.com`, icon: "📸" },
+    { label: "Instagram", color: "#E1306C", href: "https://instagram.com", icon: "📸" },
     { label: "X", color: "#000", href: `https://twitter.com/intent/tweet?text=${shareText}&url=${url}`, icon: "✕" },
   ];
   return (
-    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 16 }}>
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
       {links.map(l => (
-        <a
-          key={l.label}
-          href={l.href}
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            padding: "6px 14px",
-            background: l.color,
-            color: "#fff",
-            borderRadius: 6,
-            fontSize: 12,
-            fontWeight: 700,
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-          }}
-        >
+        <a key={l.label} href={l.href} target="_blank" rel="noreferrer"
+          style={{ padding: "6px 14px", background: l.color, color: "#fff", borderRadius: 6, fontSize: 12, fontWeight: 700, textDecoration: "none", display: "flex", alignItems: "center", gap: 4 }}>
           <span>{l.icon}</span> {l.label}
         </a>
       ))}
@@ -52,34 +35,34 @@ function ShareButtons({ ad }: { ad: Ad }) {
   );
 }
 
-function AdCard({ ad }: { ad: Ad }) {
+function AdCard({ ad, onView }: { ad: Ad; onView: (id: string) => void }) {
+  const imageUrl = ad.image_url || ad.imageUrl;
+  const videoUrl = ad.video_url || ad.videoUrl;
   return (
-    <div style={{
-      background: "#fff",
-      borderRadius: 12,
-      boxShadow: "0 2px 12px rgba(0,0,0,0.07)",
-      overflow: "hidden",
-      border: "1px solid #e5e7eb",
-    }}>
+    <div style={{ background: "#fff", borderRadius: 12, boxShadow: "0 2px 12px rgba(0,0,0,0.07)", overflow: "hidden", border: "1px solid #e5e7eb" }}>
       <div style={{ display: "flex", height: 200 }}>
-        <div style={{ flex: 1, overflow: "hidden" }}>
-          {ad.imageUrl ? (
-            <img src={ad.imageUrl} alt={ad.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+        <div style={{ flex: 1, overflow: "hidden", cursor: "pointer" }} onClick={() => onView(ad.id)}>
+          {imageUrl ? (
+            <img src={imageUrl} alt={ad.title} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
           ) : (
             <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#d1fae5,#a7f3d0)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 48 }}>📣</div>
           )}
         </div>
-        {ad.videoUrl && (
+        {videoUrl && (
           <div style={{ flex: 1, background: "#000" }}>
             <video controls style={{ width: "100%", height: "100%", objectFit: "cover" }}>
-              <source src={ad.videoUrl} />
+              <source src={videoUrl} />
             </video>
           </div>
         )}
       </div>
-      <div style={{ padding: "16px 20px" }}>
-        <h3 style={{ fontSize: 16, fontWeight: 800, color: "#111827", marginBottom: 6 }}>{ad.title}</h3>
-        <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 12 }}>{ad.description}</p>
+      <div style={{ padding: "14px 18px" }}>
+        <h3 style={{ fontSize: 15, fontWeight: 800, color: "#111827", marginBottom: 4, cursor: "pointer" }} onClick={() => onView(ad.id)}>{ad.title}</h3>
+        <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 6 }}>{ad.description}</p>
+        <button onClick={() => onView(ad.id)}
+          style={{ fontSize: 12, color: "#16a34a", background: "none", border: "none", cursor: "pointer", padding: 0, fontWeight: 600 }}>
+          View full advert →
+        </button>
         <ShareButtons ad={ad} />
       </div>
     </div>
@@ -87,51 +70,82 @@ function AdCard({ ad }: { ad: Ad }) {
 }
 
 function RequestAdForm({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", description: "" });
-  const mutation = useMutation({
-    mutationFn: (data: typeof form) => apiRequest("POST", "/api/advert-requests", data),
-    onSuccess: () => { alert("Request submitted! We'll contact you soon."); onClose(); },
-    onError: (err: any) => alert("Failed to submit: " + err.message),
+  const [form, setForm] = useState({ name: "", email: "", phone: "", description: "", type: "standard" });
+  const [step, setStep] = useState<"form" | "payment">("form");
+  const [paymentInfo, setPaymentInfo] = useState<any>(null);
+  const [submittedId, setSubmittedId] = useState<string>("");
+
+  const submitMutation = useMutation({
+    mutationFn: (data: typeof form) => apiRequest("POST", "/api/advert-requests", { ...data, message: data.description }),
+    onSuccess: async (data) => {
+      setSubmittedId(data.id);
+      if (form.type === "premium") {
+        const payment = await apiRequest("POST", "/api/payments/initiate", { requestId: data.id, type: "premium" });
+        setPaymentInfo(payment);
+        setStep("payment");
+      } else {
+        alert("Request submitted! We will contact you soon.");
+        onClose();
+      }
+    },
+    onError: (err: any) => alert("Failed: " + err.message),
   });
+
+  if (step === "payment" && paymentInfo) {
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: "#fff", borderRadius: 12, padding: 28, width: "min(440px,95vw)", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
+          <h3 style={{ margin: "0 0 16px", fontSize: 17, fontWeight: 800 }}>💳 Premium Payment</h3>
+          <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 8, padding: 14, marginBottom: 16 }}>
+            <p style={{ margin: "0 0 6px", fontWeight: 700, color: "#065f46" }}>Payment Reference</p>
+            <p style={{ margin: 0, fontFamily: "monospace", fontSize: 15, color: "#111", letterSpacing: 1 }}>{paymentInfo.paymentRef}</p>
+            <p style={{ margin: "8px 0 0", fontSize: 13, color: "#374151" }}>Amount: <strong>${paymentInfo.amount} USD</strong></p>
+          </div>
+          <p style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, margin: "0 0 16px" }}>{paymentInfo.instructions}</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={onClose} style={{ flex: 1, padding: "10px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+              Done — I'll Pay
+            </button>
+            <button onClick={onClose} style={{ padding: "10px 16px", background: "#f3f4f6", border: "none", borderRadius: 8, cursor: "pointer" }}>Close</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: "#fff", borderRadius: 12, padding: 28, width: "min(440px,95vw)", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
         <h3 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 800 }}>Request Custom Ad</h3>
+
+        <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+          {["standard", "premium"].map(t => (
+            <button key={t} onClick={() => setForm(f => ({ ...f, type: t }))}
+              style={{ flex: 1, padding: "9px", border: "2px solid", borderColor: form.type === t ? "#16a34a" : "#e5e7eb", background: form.type === t ? "#f0fdf4" : "#fff", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", color: form.type === t ? "#15803d" : "#6b7280", textTransform: "capitalize" }}>
+              {t === "premium" ? "⭐ Premium ($25)" : "Standard ($10)"}
+            </button>
+          ))}
+        </div>
+
         {(["name", "email", "phone", "description"] as const).map(field => (
           <div key={field} style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", textTransform: "capitalize" }}>{field}</label>
+            <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", textTransform: "capitalize" }}>{field === "description" ? "What do you want to advertise?" : field}</label>
             {field === "description" ? (
-              <textarea
-                value={form[field]}
-                onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-                rows={3}
-                style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box", resize: "vertical" }}
-              />
+              <textarea value={form[field]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))} rows={3}
+                style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box", resize: "vertical" }} />
             ) : (
-              <input
-                type={field === "email" ? "email" : "text"}
-                value={form[field]}
-                onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
-                style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box" }}
-              />
+              <input type={field === "email" ? "email" : "text"} value={form[field]} onChange={e => setForm(f => ({ ...f, [field]: e.target.value }))}
+                style={{ width: "100%", padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6, fontSize: 13, marginTop: 4, boxSizing: "border-box" }} />
             )}
           </div>
         ))}
+
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <button
-            onClick={() => mutation.mutate(form)}
-            disabled={mutation.isPending}
-            style={{ flex: 1, padding: "10px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}
-          >
-            {mutation.isPending ? "Submitting..." : "Submit Request"}
+          <button onClick={() => submitMutation.mutate(form)} disabled={submitMutation.isPending}
+            style={{ flex: 1, padding: "10px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+            {submitMutation.isPending ? "Submitting..." : "Submit Request"}
           </button>
-          <button
-            onClick={onClose}
-            style={{ padding: "10px 16px", background: "#f3f4f6", border: "none", borderRadius: 8, cursor: "pointer" }}
-          >
-            Cancel
-          </button>
+          <button onClick={onClose} style={{ padding: "10px 16px", background: "#f3f4f6", border: "none", borderRadius: 8, cursor: "pointer" }}>Cancel</button>
         </div>
       </div>
     </div>
@@ -157,10 +171,8 @@ export default function PublicAds() {
             <p style={{ color: "#86efac", margin: 0, fontSize: 12 }}>Discover local businesses and opportunities</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowRequest(true)}
-          style={{ padding: "10px 20px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 14 }}
-        >
+        <button onClick={() => setShowRequest(true)}
+          style={{ padding: "10px 20px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 14 }}>
           + Request Custom Ad
         </button>
       </div>
@@ -173,16 +185,14 @@ export default function PublicAds() {
             <div style={{ fontSize: 48 }}>📭</div>
             <p style={{ color: "#374151", fontWeight: 700, fontSize: 18, marginTop: 12 }}>No adverts yet</p>
             <p style={{ color: "#6b7280", marginTop: 4 }}>Be the first to advertise here!</p>
-            <button
-              onClick={() => setShowRequest(true)}
-              style={{ marginTop: 16, padding: "10px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}
-            >
+            <button onClick={() => setShowRequest(true)}
+              style={{ marginTop: 16, padding: "10px 24px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
               Request an Ad
             </button>
           </div>
         ) : (
           <div style={{ display: "grid", gap: 20 }}>
-            {ads.map(ad => <AdCard key={ad.id} ad={ad} />)}
+            {ads.map(ad => <AdCard key={ad.id} ad={ad} onView={(id) => navigate(`/adverts/${id}`)} />)}
           </div>
         )}
       </div>

@@ -1,17 +1,8 @@
 import { Router, type IRouter } from "express";
-import { randomUUID, createHmac } from "crypto";
+import { createHmac } from "crypto";
+import { query } from "../lib/db";
 
 const router: IRouter = Router();
-
-interface User {
-  id: string;
-  email: string;
-  passwordHash: string;
-  role: string;
-  displayName: string;
-  createdAt: Date;
-}
-
 const SECRET = "samanyanga-fixed-secret-2024";
 
 function hashPassword(password: string): string {
@@ -25,56 +16,71 @@ function makeToken(payload: Record<string, unknown>): string {
   return `${header}.${body}.${sig}`;
 }
 
-const DEMO = hashPassword("demo123");
+async function seedDemoUsers() {
+  const demos = [
+    ["farmer@demo.com", "demo123", "farmer", "Demo Farmer"],
+    ["student@demo.com", "demo123", "student", "Demo Student"],
+    ["buyer@demo.com", "demo123", "merchant", "Demo Buyer"],
+    ["seller@demo.com", "demo123", "seller", "Demo Seller"],
+    ["admin@demo.com", "demo123", "admin", "Admin"],
+  ];
+  for (const [email, pass, role, displayName] of demos) {
+    await query(
+      `INSERT INTO users (email, password, role, display_name)
+       VALUES ($1, $2, $3, $4) ON CONFLICT (email) DO NOTHING`,
+      [email, hashPassword(pass), role, displayName]
+    );
+  }
+}
 
-const users: User[] = [
-  { id: "demo-farmer", email: "farmer@demo.com", passwordHash: DEMO, role: "farmer", displayName: "Demo Farmer", createdAt: new Date() },
-  { id: "demo-student", email: "student@demo.com", passwordHash: DEMO, role: "student", displayName: "Demo Student", createdAt: new Date() },
-  { id: "demo-buyer", email: "buyer@demo.com", passwordHash: DEMO, role: "merchant", displayName: "Demo Buyer", createdAt: new Date() },
-  { id: "demo-seller", email: "seller@demo.com", passwordHash: DEMO, role: "seller", displayName: "Demo Seller", createdAt: new Date() },
-];
+seedDemoUsers().catch(console.error);
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-  const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
-  if (!user || user.passwordHash !== hashPassword(String(password))) {
-    return res.status(401).json({ message: "Invalid email or password" });
+  try {
+    const result = await query("SELECT * FROM users WHERE LOWER(email) = LOWER($1)", [email]);
+    const user = result.rows[0];
+    if (!user || user.password !== hashPassword(String(password))) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    const token = makeToken({ id: user.id, email: user.email, role: user.role });
+    res.json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
   }
-  const token = makeToken({ id: user.id, email: user.email, role: user.role });
-  res.json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
 });
 
-router.post("/register", (req, res) => {
+router.post("/register", async (req, res) => {
   const { email, password, role } = req.body;
   if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-  if (users.find(u => u.email.toLowerCase() === String(email).toLowerCase())) {
-    return res.status(409).json({ message: "Email already in use" });
-  }
   const allowedRoles = ["farmer", "merchant", "seller", "student"];
   const userRole = allowedRoles.includes(role) ? role : "farmer";
-  const user: User = {
-    id: randomUUID(),
-    email: String(email),
-    passwordHash: hashPassword(String(password)),
-    role: userRole,
-    displayName: String(email).split("@")[0],
-    createdAt: new Date(),
-  };
-  users.push(user);
-  const token = makeToken({ id: user.id, email: user.email, role: user.role });
-  res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.displayName } });
+  try {
+    const existing = await query("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", [email]);
+    if (existing.rows.length > 0) return res.status(409).json({ message: "Email already in use" });
+    const result = await query(
+      "INSERT INTO users (email, password, role, display_name) VALUES ($1, $2, $3, $4) RETURNING *",
+      [email, hashPassword(String(password)), userRole, String(email).split("@")[0]]
+    );
+    const user = result.rows[0];
+    const token = makeToken({ id: user.id, email: user.email, role: user.role });
+    res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
 });
 
-router.get("/me", (req, res) => {
+router.get("/me", async (req, res) => {
   const auth = req.headers.authorization;
   if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
   try {
     const parts = auth.slice(7).split(".");
     const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString());
-    const user = users.find(u => u.id === payload.id);
+    const result = await query("SELECT * FROM users WHERE id = $1", [payload.id]);
+    const user = result.rows[0];
     if (!user) return res.status(404).json({ error: "User not found" });
-    res.json({ id: user.id, email: user.email, role: user.role, displayName: user.displayName });
+    res.json({ id: user.id, email: user.email, role: user.role, displayName: user.display_name });
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }

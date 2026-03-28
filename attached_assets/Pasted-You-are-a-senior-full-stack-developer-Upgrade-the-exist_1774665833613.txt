@@ -1,0 +1,59 @@
+You are a senior full-stack developer. Upgrade the existing Samanyanga Companion app to production-ready. Do NOT regenerate existing working features. Only extend and integrate the following, minimal and efficient:
+
+1. Database (replace in-memory storage)
+- Use PostgreSQL (preferred) or SQLite fallback
+- Create tables:
+  users(id, email, password, role)
+  ads(id, type, url, title, description, created_at)
+  advert_requests(id, message, type, status, created_at)
+  products(id, name, category, description, price, quantity, location, image, user_id, status)
+  product_requests(id, product_id, buyer_id, status, created_at)
+- Update existing endpoints to use DB instead of arrays
+
+2. Admin Dashboard (new minimal route `/admin`)
+- View advert requests
+- Button: "Generate Image" → call OpenRouter
+- Button: "Generate Video" → call SISIF
+- Save result to ads table and auto-publish
+- View product requests
+
+3. Payments (simple integration)
+- Add "premium advert request" option
+- Endpoint: `/api/payments/initiate`
+- Store payment status in DB (pending, paid)
+- After "paid" → mark advert_request as priority
+- Keep implementation simple (mock or Stripe-ready structure)
+
+4. AI Upgrade (hybrid)
+- Keep existing keyword logic
+- If no strong match → call OpenRouter chat API
+- Use system prompt:
+  "You are an assistant inside Samanyanga Companion. Give step-by-step answers using platform features."
+
+5. Advert Page (`/adverts/:id`)
+- Fetch single advert from DB
+- Show image/video, title, description
+- Add buttons:
+  WhatsApp (wa.me link with prefilled text)
+  "Request Similar Ad"
+
+6. Marketplace Improvements
+- Add product status: available/sold
+- Add request tracking: pending/accepted/rejected
+- Ensure buyer request updates DB
+
+7. Security + Config
+- Move all API keys to `.env`
+- Add basic JWT middleware protection for admin routes
+- Enable CORS for frontend
+
+8. Deployment readiness
+- Ensure server runs on `process.env.PORT`
+- Add simple error handling for all routes
+- Keep code minimal, no extra libraries unless required
+
+RULES:
+- Do NOT rewrite working UI
+- Extend existing structure only
+- Minimal code, no comments, no explanations
+- Return only updated/new files
