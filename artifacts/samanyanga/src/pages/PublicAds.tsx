@@ -72,7 +72,7 @@ function AdCard({ ad, onView }: { ad: Ad; onView: (id: string) => void }) {
 }
 
 function RequestAdForm({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", description: "", type: "standard" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", description: "", type: "standard", advert_type: "image" });
   const [step, setStep] = useState<"form" | "payment">("form");
   const [paymentInfo, setPaymentInfo] = useState<any>(null);
   const [submittedId, setSubmittedId] = useState<string>("");
@@ -118,7 +118,19 @@ function RequestAdForm({ onClose }: { onClose: () => void }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 999, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ background: "#fff", borderRadius: 12, padding: 28, width: "min(440px,95vw)", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
-        <h3 style={{ margin: "0 0 20px", fontSize: 18, fontWeight: 800 }}>Request Custom Ad</h3>
+        <h3 style={{ margin: "0 0 16px", fontSize: 18, fontWeight: 800 }}>Request Custom Ad</h3>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>Ad Media Type</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            {[{ v: "image", label: "🖼 Image Ad" }, { v: "video", label: "🎬 Video Ad" }].map(({ v, label }) => (
+              <button key={v} onClick={() => setForm(f => ({ ...f, advert_type: v }))}
+                style={{ flex: 1, padding: "9px", border: "2px solid", borderColor: form.advert_type === v ? "#4f46e5" : "#e5e7eb", background: form.advert_type === v ? "#eef2ff" : "#fff", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer", color: form.advert_type === v ? "#4338ca" : "#6b7280" }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
           {["standard", "premium"].map(t => (

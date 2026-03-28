@@ -38,16 +38,16 @@ router.get("/ads/:id", async (req, res) => {
 });
 
 router.post("/advert-requests", async (req, res) => {
-  const { name, email, phone, description, message, type = "standard" } = req.body;
+  const { name, email, phone, description, message, type = "standard", advert_type = "image" } = req.body;
   const msg = message || description;
   if (!name || !email || !msg) {
     return res.status(400).json({ error: "name, email, and message are required" });
   }
   try {
     const result = await query(
-      `INSERT INTO advert_requests (name, email, phone, message, type, status, payment_status)
-       VALUES ($1, $2, $3, $4, $5, 'pending', 'unpaid') RETURNING *`,
-      [name, email, phone || null, msg, type]
+      `INSERT INTO advert_requests (name, email, phone, message, type, advert_type, status, payment_status)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', 'unpaid') RETURNING *`,
+      [name, email, phone || null, msg, type, advert_type]
     );
     res.status(201).json(result.rows[0]);
   } catch (err: any) {

@@ -18,6 +18,7 @@ export default function AdminLogin() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [showDemoAccounts, setShowDemoAccounts] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +67,7 @@ export default function AdminLogin() {
           borderRadius: 12,
           padding: 32,
           boxShadow: "0 8px 40px rgba(0,0,0,0.3)",
-          marginBottom: 20,
+          marginBottom: 16,
         }}>
           <div style={{ textAlign: "center", marginBottom: 24 }}>
             <div style={{ fontSize: 40 }}>🛡️</div>
@@ -126,21 +127,35 @@ export default function AdminLogin() {
           background: "rgba(255,255,255,0.08)",
           border: "1px solid rgba(255,255,255,0.2)",
           borderRadius: 10,
-          padding: 20,
+          padding: 16,
           backdropFilter: "blur(6px)",
         }}>
-          <p style={{ color: "#c7d2fe", fontWeight: 700, fontSize: 13, margin: "0 0 12px" }}>🔑 Platform Demo Accounts</p>
-          <div style={{ display: "grid", gap: 8 }}>
-            {DEMO_ACCOUNTS.map(({ role, email, password }) => (
-              <div key={email} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.08)", borderRadius: 6 }}>
-                <span style={{ color: "#e0e7ff", fontSize: 13, fontWeight: 600 }}>{role}</span>
-                <span style={{ color: "#a5b4fc", fontSize: 12 }}>{email}</span>
-                <span style={{ color: "#818cf8", fontSize: 12 }}>
-                  <code style={{ background: "rgba(0,0,0,0.2)", padding: "1px 6px", borderRadius: 4 }}>{password}</code>
-                </span>
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={() => setShowDemoAccounts(v => !v)}
+            style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: 0 }}
+          >
+            <p style={{ color: "#c7d2fe", fontWeight: 700, fontSize: 13, margin: 0 }}>🔑 Platform Demo Accounts</p>
+            <span style={{ color: "#a5b4fc", fontSize: 12 }}>{showDemoAccounts ? "▲ Hide" : "▼ Show"}</span>
+          </button>
+
+          {showDemoAccounts && (
+            <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+              {DEMO_ACCOUNTS.map(({ role, email: demoEmail, password: demoPass }) => (
+                <div key={demoEmail}
+                  onClick={() => { setEmail(demoEmail); setPassword(demoPass); }}
+                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "rgba(255,255,255,0.1)", borderRadius: 6, cursor: "pointer" }}
+                  title="Click to fill credentials"
+                >
+                  <span style={{ color: "#e0e7ff", fontSize: 13, fontWeight: 600 }}>{role}</span>
+                  <span style={{ color: "#a5b4fc", fontSize: 12 }}>{demoEmail}</span>
+                  <span style={{ color: "#818cf8", fontSize: 12 }}>
+                    <code style={{ background: "rgba(0,0,0,0.2)", padding: "1px 6px", borderRadius: 4 }}>{demoPass}</code>
+                  </span>
+                </div>
+              ))}
+              <p style={{ margin: "6px 0 0", fontSize: 11, color: "#818cf8", textAlign: "center" }}>Click any row to auto-fill credentials</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
