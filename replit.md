@@ -60,7 +60,19 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `/farmer` — Farmer dashboard: browse marketplace + manage listings
 - `/buyer` — Merchant/Buyer dashboard: browse marketplace
 - `/seller` — Seller dashboard: manage listings + browse marketplace
-- `/student-companion` — AI study chat for Grade 7 / O Level / A Level (download chat button)
+- `/student-companion` — AI study chat (Grade 7/O Level/A Level) + Study Materials browser tab (view/download PDFs, images, videos)
+- `/admin` — Full admin dashboard (8 tabs: Image Adverts, Video Adverts, Products, Interns, Consultations, Revenue, Study Materials, Security)
+- Graduation photo wallpaper applied as a fixed, very subtle (7% opacity) body background across all pages
+
+### Admin Dashboard Tabs
+- **Image Adverts** — Review/approve/reject image advert requests; generate AI images; preview + download
+- **Video Adverts** — Review/approve/reject video advert requests; generate AI videos; preview + download
+- **Products** — Accept/reject product purchase requests from buyers
+- **Interns** — Accept/reject agricultural intern attachment applications
+- **Consultations** — Review consultation requests and write responses
+- **Revenue** — Revenue stats (total, adverts, consultations); all transactions list with Mark Paid / Refund / Reset; EcoCash account 0783652488
+- **Study Materials** — Upload PDFs/images/video URLs for students by grade and subject; preview + download + delete
+- **Security** — Demo account credentials display with copy-to-clipboard buttons + security notes
 
 ### Backend Routes (API Server, port 8080)
 - `POST /api/login` — returns JWT token + user role
@@ -72,14 +84,38 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `GET /api/products/:id` — product detail
 - `POST /api/products` — create product listing
 - `POST /api/products/:id/request` — request a product (buyer contacts seller)
-- `POST /api/ai/chat` — agricultural AI chat
-- `POST /api/ai/student` — student study AI chat
+- `POST /api/ai/hybrid` — hybrid AI endpoint (OpenAI + local fallback), section-specific prompts
+- `GET /api/admin/revenue` — revenue summary (totals, paid counts, EcoCash details)
+- `GET /api/admin/transactions` — all payment transactions (adverts + consultations combined)
+- `PATCH /api/admin/transactions/:source/:id` — update payment_status (paid/pending/refunded)
+- `GET /api/admin/consultations` — list consultations
+- `PATCH /api/admin/consultations/:id` — respond to consultation
+- `GET /api/admin/study-materials` — admin list of all uploaded study materials
+- `POST /api/admin/study-materials` — upload new study material (base64 for PDF/image, URL for video)
+- `DELETE /api/admin/study-materials/:id` — delete study material
+- `GET /api/study-materials[?grade=&subject=]` — public student-facing material list
+- `GET /api/study-materials/:id/data` — serve file or redirect to URL
+
+### Database Tables
+- `users` — email, password_hash, role, name
+- `ads` — published adverts (image_url, video_url, title, description)
+- `advert_requests` — user-submitted ad requests (advert_type: image/video)
+- `products` — marketplace listings
+- `product_requests` — buyer purchase requests
+- `consultations` — consultation requests (response, payment_status)
+- `intern_attachments` — intern application requests
+- `study_materials` — uploaded resources (base64 file_data or URL, grade, subject, file_type)
 
 ### Demo Accounts (password: `demo123`)
+- admin@demo.com → Full Admin Dashboard
 - farmer@demo.com → Farmer Dashboard
 - buyer@demo.com → Merchant Dashboard
 - seller@demo.com → Seller Dashboard
 - student@demo.com → Student Companion
+
+### Payments
+- EcoCash account: 0783652488
+- Standard Advert: $10 · Premium Advert: $25 · Agronomic Consultation: $5
 
 ### Vite Proxy
 Vite proxies `/api` → `http://localhost:8080` in dev mode.
