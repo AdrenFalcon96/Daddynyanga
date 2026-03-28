@@ -1,3 +1,4 @@
+import http from "http";
 import { logger } from "./lib/logger";
 import { initDb } from "./lib/initDb";
 
@@ -13,11 +14,15 @@ initDb()
   .then(async () => {
     logger.info("Database initialized");
     const { default: app } = await import("./app");
-    app.listen(port, (err) => {
-      if (err) {
-        logger.error({ err }, "Error listening on port");
-        process.exit(1);
-      }
+
+    const server = http.createServer(app);
+
+    server.on("error", (err) => {
+      logger.error({ err }, "Server error");
+      process.exit(1);
+    });
+
+    server.listen(port, "0.0.0.0", () => {
       logger.info({ port }, "Server listening");
     });
   })
