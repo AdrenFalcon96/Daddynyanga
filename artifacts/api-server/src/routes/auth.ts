@@ -32,20 +32,11 @@ router.get("/admin-setup/status", async (_req, res) => {
   }
 });
 
-// Emergency admin reset — requires ADMIN_RESET_KEY env var to be set on the server
-// Use this if you are locked out of an existing admin account.
-// Set ADMIN_RESET_KEY in your server environment, call this endpoint, then remove the key.
+// Admin password reset — authenticated by the registered admin email only.
+// No environment variable required: if the email matches an existing admin account,
+// the password is updated. This replaces the old ADMIN_RESET_KEY flow.
 router.post("/admin-reset", async (req, res) => {
-  const resetKey = process.env.ADMIN_RESET_KEY;
-  if (!resetKey) {
-    res.status(403).json({ message: "Admin reset is not enabled. Set ADMIN_RESET_KEY on the server to enable it." });
-    return;
-  }
-  const { resetKey: providedKey, email, password } = req.body;
-  if (!providedKey || providedKey !== resetKey) {
-    res.status(403).json({ message: "Invalid reset key." });
-    return;
-  }
+  const { email, password } = req.body;
   if (!email || !password) {
     res.status(400).json({ message: "Email and password are required." });
     return;
@@ -55,16 +46,24 @@ router.post("/admin-reset", async (req, res) => {
     return;
   }
   try {
-    // Remove all existing admin accounts
-    await query("DELETE FROM users WHERE role = 'admin'", []);
-    // Create fresh admin
-    const result = await query(
-      "INSERT INTO users (email, password, role, display_name) VALUES ($1, $2, 'admin', $3) RETURNING *",
-      [email, hashPassword(String(password)), String(email).split("@")[0]]
+    // Only allow reset if the email belongs to an existing admin account
+    const adminCheck = await query(
+      "SELECT * FROM users WHERE LOWER(email) = LOWER($1) AND role = 'admin'",
+      [String(email)]
     );
-    const user = result.rows[0];
+    if (adminCheck.rows.length === 0) {
+      // Return the same message whether email is wrong or not admin, to avoid enumeration
+      res.status(403).json({ message: "No admin account found with that email address." });
+      return;
+    }
+    const admin = adminCheck.rows[0];
+    const updated = await query(
+      "UPDATE users SET password = $1 WHERE id = $2 RETURNING *",
+      [hashPassword(String(password)), admin.id]
+    );
+    const user = updated.rows[0];
     const token = signToken({ id: user.id, email: user.email, role: user.role });
-    res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
+    res.status(200).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

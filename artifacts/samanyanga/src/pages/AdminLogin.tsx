@@ -11,7 +11,6 @@ export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [resetKey, setResetKey] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +62,7 @@ export default function AdminLogin() {
     }
     setLoading(true);
     try {
-      const res = await apiRequest("POST", "/api/admin-reset", { resetKey, email, password });
+      const res = await apiRequest("POST", "/api/admin-reset", { email, password });
       localStorage.setItem("token", res.token);
       setSuccess("Admin account reset! Redirecting to dashboard...");
       setTimeout(() => navigate("/admin"), 1500);
@@ -147,7 +146,7 @@ export default function AdminLogin() {
                   {isSetup
                     ? "No admin exists yet — set up your administrator account"
                     : isReset
-                    ? "Enter your ADMIN_RESET_KEY from Render to regain access"
+                    ? "Enter your registered admin email to reset your password"
                     : "Samanyanga Companion — Restricted Access"}
                 </p>
               </div>
@@ -176,7 +175,7 @@ export default function AdminLogin() {
                   fontSize: 13,
                   color: "#9a3412",
                 }}>
-                  To use this: go to your Render dashboard → Environment → add <strong>ADMIN_RESET_KEY</strong> with any secret value. Paste that same value here. This will delete the old admin and create a fresh one. Remove the key from Render after use.
+                  Enter the email address registered to the admin account and choose a new password.
                 </div>
               )}
 
@@ -193,20 +192,6 @@ export default function AdminLogin() {
               )}
 
               <form onSubmit={isSetup ? handleSetup : isReset ? handleReset : handleLogin}>
-                {isReset && (
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Reset Key (ADMIN_RESET_KEY)</label>
-                    <input
-                      type="text"
-                      required
-                      value={resetKey}
-                      onChange={e => setResetKey(e.target.value)}
-                      placeholder="Paste your reset key here"
-                      style={inputStyle}
-                      autoComplete="off"
-                    />
-                  </div>
-                )}
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
                     {isSetup || isReset ? "Your Email Address" : "Admin Email"}
