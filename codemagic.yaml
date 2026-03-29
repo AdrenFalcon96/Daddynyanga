@@ -3,7 +3,7 @@ workflows:
     name: Samanyanga Companion — Android APK
     max_build_duration: 60
     environment:
-      node: 20.19.0
+      node: 22.16.0
       java: 17
       groups:
         - keystore_credentials
