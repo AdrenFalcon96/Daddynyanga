@@ -15,7 +15,16 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://daddynyanga.onrender.com",
+      /^http:\/\/localhost(:\d+)?$/,
+      /^http:\/\/172\.\d+\.\d+\.\d+(:\d+)?$/,
+    ],
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
