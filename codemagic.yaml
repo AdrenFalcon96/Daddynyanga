@@ -52,6 +52,7 @@ workflows:
 
       - name: Build debug APK (for testing — no keystore needed)
         script: |
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
           chmod +x artifacts/samanyanga/android/gradlew
           cd artifacts/samanyanga/android
           ./gradlew assembleDebug
@@ -62,6 +63,7 @@ workflows:
             echo "No keystore configured — skipping release build."
             exit 0
           fi
+          export JAVA_HOME=$(/usr/libexec/java_home -v 21)
           chmod +x artifacts/samanyanga/android/gradlew
           cd artifacts/samanyanga/android
           mkdir -p app/keystore
