@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import heroPhoto from "/graduation-hero.webp";
+import { usePwaReady } from "@/hooks/useOffline";
 
 function getTokenRole(): string | null {
   try {
@@ -51,13 +52,8 @@ export default function Home() {
   const role = getTokenRole();
   const isAdmin = role === "admin";
 
-  const [offlineBanner, setOfflineBanner] = useState(true);
+  const { ready: pwaReady, dismissed: pwaDismissed, dismiss: dismissPwa } = usePwaReady();
   const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    const t = setTimeout(() => setOfflineBanner(false), 8000);
-    return () => clearTimeout(t);
-  }, []);
 
   const btnBase: React.CSSProperties = {
     display: "flex",
@@ -196,11 +192,11 @@ export default function Home() {
           </div>
         </header>
 
-        {/* ── OFFLINE BANNER ── */}
-        {offlineBanner && (
+        {/* ── PWA READY BANNER ── */}
+        {pwaReady && !pwaDismissed && (
           <div style={{ position: "relative", zIndex: 10, padding: "0 16px 10px" }}>
             <div
-              onClick={() => setOfflineBanner(false)}
+              onClick={dismissPwa}
               style={{
                 display: "flex",
                 alignItems: "center",
