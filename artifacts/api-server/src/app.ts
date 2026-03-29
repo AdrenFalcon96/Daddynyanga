@@ -29,6 +29,10 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+app.get("/", (_req, res) => {
+  res.json({ name: "Samanyanga API", status: "running", docs: "/api/health" });
+});
+
 app.use("/api", router);
 
 // Serve frontend static build in production (only when SERVE_STATIC is explicitly enabled)
