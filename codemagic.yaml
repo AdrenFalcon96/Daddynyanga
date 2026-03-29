@@ -36,22 +36,23 @@ workflows:
         script: |
           cd artifacts/samanyanga
           if [ ! -d "android" ]; then
-            npx cap add android
+            pnpm exec cap add android
           fi
 
       - name: Sync Capacitor with Android
         script: |
           cd artifacts/samanyanga
-          npx cap sync android
+          pnpm exec cap sync android
 
       - name: Set app version from build number
         script: |
           GRADLE_FILE="artifacts/samanyanga/android/app/build.gradle"
-          sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" "$GRADLE_FILE"
-          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.$BUILD_NUMBER\"/" "$GRADLE_FILE"
+          sed -i '' "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" "$GRADLE_FILE"
+          sed -i '' "s/versionName \"[^\"]*\"/versionName \"1.0.$BUILD_NUMBER\"/" "$GRADLE_FILE"
 
       - name: Build debug APK (for testing — no keystore needed)
         script: |
+          chmod +x artifacts/samanyanga/android/gradlew
           cd artifacts/samanyanga/android
           ./gradlew assembleDebug
 
@@ -61,6 +62,7 @@ workflows:
             echo "No keystore configured — skipping release build."
             exit 0
           fi
+          chmod +x artifacts/samanyanga/android/gradlew
           cd artifacts/samanyanga/android
           mkdir -p app/keystore
           echo "$KEYSTORE_B64" | base64 -d > app/keystore/release.jks
