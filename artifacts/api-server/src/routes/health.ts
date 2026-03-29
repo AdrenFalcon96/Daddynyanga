@@ -4,7 +4,7 @@ import { HealthCheckResponse } from "@workspace/api-zod";
 const router: IRouter = Router();
 
 router.get("/health", (_req, res) => {
-  res.json({ status: "OK" });
+  res.json({ status: "OK", service: "Samanyanga API" });
 });
 
 router.get("/healthz", (_req, res) => {
