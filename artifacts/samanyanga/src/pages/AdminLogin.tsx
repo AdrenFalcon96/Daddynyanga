@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 
-type Mode = "checking" | "login" | "setup" | "reset";
+type Mode = "checking" | "login" | "setup" | "reset" | "api-error";
 
 export default function AdminLogin() {
   const [, navigate] = useLocation();
   const [mode, setMode] = useState<Mode>("checking");
+  const [checkAttempt, setCheckAttempt] = useState(0);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,16 +18,29 @@ export default function AdminLogin() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+    setMode("checking");
+
     async function checkAdminStatus() {
-      try {
-        const res = await apiRequest("GET", "/api/admin-setup/status");
-        setMode(res.adminExists ? "login" : "setup");
-      } catch {
-        setMode("login");
+      // Retry up to 3 times — Render free tier can be slow to cold-start
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await apiRequest("GET", "/api/admin-setup/status");
+          if (!cancelled) setMode(res.adminExists ? "login" : "setup");
+          return;
+        } catch {
+          if (attempt < 2) {
+            await new Promise(r => setTimeout(r, 3000));
+          }
+        }
       }
+      // All retries failed — API is unreachable
+      if (!cancelled) setMode("api-error");
     }
+
     checkAdminStatus();
-  }, []);
+    return () => { cancelled = true; };
+  }, [checkAttempt]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,6 +126,7 @@ export default function AdminLogin() {
   const isSetup = mode === "setup";
   const isReset = mode === "reset";
   const isChecking = mode === "checking";
+  const isApiError = mode === "api-error";
 
   return (
     <div style={{
@@ -133,7 +148,28 @@ export default function AdminLogin() {
           {isChecking ? (
             <div style={{ textAlign: "center", padding: "32px 0", color: "#6b7280" }}>
               <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
-              <p style={{ margin: 0, fontSize: 14 }}>Checking admin status...</p>
+              <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 600 }}>Connecting to server...</p>
+              <p style={{ margin: 0, fontSize: 12, color: "#9ca3af" }}>This may take up to 30 seconds on first load</p>
+            </div>
+          ) : isApiError ? (
+            <div style={{ textAlign: "center", padding: "24px 0" }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+              <h2 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 800, color: "#991b1b" }}>Cannot Reach API Server</h2>
+              <p style={{ margin: "0 0 20px", fontSize: 13, color: "#6b7280", lineHeight: 1.5 }}>
+                The backend API is not responding. If you are on Render's free tier, the server may be waking up. Please wait a moment and try again.
+              </p>
+              <button
+                onClick={() => setCheckAttempt(n => n + 1)}
+                style={{ padding: "10px 24px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, cursor: "pointer", fontSize: 14, marginBottom: 12, width: "100%" }}
+              >
+                Retry Connection
+              </button>
+              <button
+                onClick={() => setMode("setup")}
+                style={{ padding: "10px 24px", background: "none", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: 8, fontWeight: 600, cursor: "pointer", fontSize: 13, width: "100%" }}
+              >
+                Set up admin account anyway
+              </button>
             </div>
           ) : (
             <>
@@ -275,6 +311,10 @@ export default function AdminLogin() {
                     <button onClick={() => { setMode("reset"); setError(""); setSuccess(""); }} style={{ background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: 13 }}>
                       Locked out?
                     </button>
+                    <span style={{ color: "#d1d5db", margin: "0 6px" }}>|</span>
+                    <button onClick={() => { setMode("setup"); setError(""); setSuccess(""); }} style={{ background: "none", border: "none", color: "#059669", cursor: "pointer", fontSize: 13 }}>
+                      New server setup
+                    </button>
                   </>
                 )}
                 {isReset && (
@@ -290,7 +330,7 @@ export default function AdminLogin() {
           )}
         </div>
 
-        {!isChecking && !isSetup && (
+        {!isChecking && !isSetup && !isApiError && (
           <p style={{ textAlign: "center", color: "rgba(255,255,255,0.4)", fontSize: 11, marginTop: 16 }}>
             Samanyanga Companion — Admin Portal
           </p>
