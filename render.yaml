@@ -48,9 +48,7 @@ services:
         destination: /index.html
 
     envVars:
-      # Set this to your samanyanga-api Render service URL, e.g.:
-      # https://samanyanga-api.onrender.com
       - key: VITE_API_URL
-        sync: false
+        value: https://samanyanga-api-qayq.onrender.com
       - key: BASE_PATH
         value: /
