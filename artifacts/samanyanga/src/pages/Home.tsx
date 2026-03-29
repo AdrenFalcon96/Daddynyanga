@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import heroPhoto from "/graduation-hero.jpg";
+import heroPhoto from "/graduation-hero.webp";
 
 function getTokenRole(): string | null {
   try {
