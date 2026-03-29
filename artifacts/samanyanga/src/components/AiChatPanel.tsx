@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { agriAIHybrid } from "@/lib/aiEngine";
+import { hybridAI } from "@/lib/aiEngine";
 
 interface Message {
   role: "user" | "ai";
@@ -18,8 +18,8 @@ interface Props {
 export default function AiChatPanel({
   context,
   endpoint,
-  section,
-  placeholder = "Ask about farming...",
+  section = "general",
+  placeholder = "Ask me anything...",
   greeting = "Hello! I'm your AgriAI assistant. Ask me about crops, livestock, soil, prices, or farming tips.",
   headerLabel = "AgriAI Chat",
 }: Props) {
@@ -41,8 +41,8 @@ export default function AiChatPanel({
     setMessages(m => [...m, { role: "user", text }]);
     setInput("");
     setLoading(true);
+    let reply = "";
     try {
-      let reply: string;
       if (endpoint) {
         const token = localStorage.getItem("token");
         const res = await fetch(endpoint, {
@@ -53,22 +53,26 @@ export default function AiChatPanel({
           },
           body: JSON.stringify({ message: text, context, section }),
         });
-        const data = await res.json();
-        reply = data.reply || "I'm here to help. Please ask your question.";
-      } else {
-        reply = await agriAIHybrid(text);
+        if (res.ok) {
+          const data = await res.json();
+          reply = data.reply || "";
+        }
       }
-      setMessages(m => [...m, { role: "ai", text: reply }]);
-    } finally {
-      setLoading(false);
+      if (!reply) {
+        reply = await hybridAI(text, section);
+      }
+    } catch {
+      reply = await hybridAI(text, section);
     }
+    setMessages(m => [...m, { role: "ai", text: reply || "I couldn't reach the AI server right now. Please try again in a moment." }]);
+    setLoading(false);
   };
 
   return (
     <div style={{ position: "fixed", bottom: 20, right: 20, zIndex: 1000, fontFamily: "system-ui, sans-serif" }}>
       {open && (
         <div style={{
-          width: 320, height: 400, background: "#fff", borderRadius: 12,
+          width: 320, height: 420, background: "#fff", borderRadius: 12,
           boxShadow: "0 8px 32px rgba(0,0,0,0.18)", display: "flex", flexDirection: "column",
           border: "1px solid #e5e7eb", marginBottom: 8,
         }}>
@@ -84,10 +88,10 @@ export default function AiChatPanel({
             {messages.map((m, i) => (
               <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
                 <div style={{
-                  maxWidth: "80%", padding: "7px 11px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                  maxWidth: "82%", padding: "8px 12px", borderRadius: m.role === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
                   background: m.role === "user" ? "#16a34a" : "#f3f4f6",
                   color: m.role === "user" ? "#fff" : "#111827",
-                  fontSize: 13, lineHeight: 1.5,
+                  fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap",
                 }}>
                   {m.text}
                 </div>
@@ -95,7 +99,9 @@ export default function AiChatPanel({
             ))}
             {loading && (
               <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                <div style={{ padding: "7px 11px", background: "#f3f4f6", borderRadius: "12px 12px 12px 2px", fontSize: 13, color: "#9ca3af" }}>Thinking...</div>
+                <div style={{ padding: "8px 12px", background: "#f3f4f6", borderRadius: "12px 12px 12px 2px", fontSize: 13, color: "#6b7280" }}>
+                  <span style={{ animation: "pulse 1.2s infinite" }}>Thinking…</span>
+                </div>
               </div>
             )}
             <div ref={endRef} />
@@ -105,14 +111,15 @@ export default function AiChatPanel({
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && send()}
+              onKeyDown={e => e.key === "Enter" && !e.shiftKey && send()}
               placeholder={placeholder}
+              disabled={loading}
               style={{ flex: 1, padding: "7px 10px", border: "1px solid #d1d5db", borderRadius: 8, fontSize: 13, outline: "none" }}
             />
             <button
               onClick={send}
-              disabled={loading}
-              style={{ padding: "7px 12px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}
+              disabled={loading || !input.trim()}
+              style={{ padding: "7px 12px", background: loading ? "#9ca3af" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, cursor: loading ? "not-allowed" : "pointer", fontWeight: 700, fontSize: 13, transition: "background 0.2s" }}
             >
               ➤
             </button>

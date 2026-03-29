@@ -20,16 +20,18 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-const openrouter = process.env.OPENROUTER_API_KEY
+const openrouter = (process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY)
   ? new OpenAI({
-      apiKey: process.env.OPENROUTER_API_KEY,
-      baseURL: "https://openrouter.ai/api/v1",
+      apiKey: process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY!,
+      baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
       defaultHeaders: {
         "HTTP-Referer": "https://samanyanga.replit.app",
         "X-Title": "Samanyanga Companion",
       },
     })
   : null;
+
+const OPENROUTER_MODEL = "mistralai/ministral-8b-2512";
 
 const SISIF_API_KEY = process.env.SISIF_AI_API_KEY || null;
 const SISIF_BASE = "https://sisif.ai/api";
@@ -120,9 +122,9 @@ async function openrouterChat(systemPrompt: string, userMessage: string): Promis
   if (!openrouter) return null;
   try {
     const res = await openrouter.chat.completions.create({
-      model: "openai/gpt-4o-mini",
+      model: OPENROUTER_MODEL,
       messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
-      max_tokens: 300,
+      max_tokens: 8192,
     });
     return res.choices[0]?.message?.content || null;
   } catch (err: any) {

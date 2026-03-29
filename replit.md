@@ -14,7 +14,8 @@ Full-stack Zimbabwe agricultural marketplace and learning platform. pnpm workspa
 - **Frontend**: React 18 + Vite + TailwindCSS v4
 - **Database**: PostgreSQL (raw pg driver, `scripts/src/init-db.ts` for schema)
 - **Auth**: Custom JWT (HMAC-SHA256), `role`-based access
-- **AI**: OpenRouter → OpenAI fallback chain; DALL-E 3 for image gen; SISIF.AI for video gen
+- **AI**: Replit OpenRouter integration (Mistral Ministral-8B) → OpenAI fallback; rich client-side offline fallback; DALL-E 3 for image gen; SISIF.AI for video gen
+- **Mobile**: Capacitor v8 configured for Android APK builds (`artifacts/samanyanga/capacitor.config.ts`, `codemagic.yaml` at repo root)
 - **Payments**: EcoCash — account 0783652488
 - **Deployment**: Render (render.yaml at root)
 
