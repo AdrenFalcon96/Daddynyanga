@@ -1,0 +1,43 @@
+==> Cloning from https://github.com/AdrenFalcon96/Daddynyanga
+==> Checking out commit a5a3e8a9c9221a36f62ac12d4bda78ff65a734f4 in branch main
+==> Using Node.js version 22.22.0 (default)
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Running build command 'npm install -g pnpm@10 && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build'...
+added 1 package in 920ms
+1 package is looking for funding
+  run `npm fund` for details
+> @workspace/api-server@0.0.0 build /opt/render/project/src/artifacts/api-server
+> node ./build.mjs
+  dist/index.mjs                       1.9mb ⚠️
+  dist/pino-worker.mjs               153.4kb
+  dist/pino-file.mjs                 142.1kb
+  dist/pino-pretty.mjs               114.6kb
+  dist/thread-stream-worker.mjs        7.3kb
+  dist/index.mjs.map                   4.2mb
+  dist/pino-worker.mjs.map           256.9kb
+  dist/pino-file.mjs.map             229.0kb
+  dist/pino-pretty.mjs.map           203.9kb
+  dist/thread-stream-worker.mjs.map   12.0kb
+⚡ Done in 374ms
+==> Uploading build...
+==> Uploaded in 5.8s. Compression took 5.6s
+==> Build successful 🎉
+==> Deploying...
+==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+==> Running 'node artifacts/api-server/dist/index.mjs'
+[04:17:01.523] ERROR (68): Failed to initialize database
+    err: {
+      "type": "Error",
+      "message": "getaddrinfo ENOTFOUND base",
+      "stack":
+          Error: getaddrinfo ENOTFOUND base
+              at file:///opt/render/project/src/artifacts/api-server/dist/index.mjs:8636:15
+              at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+              at async query (file:///opt/render/project/src/artifacts/api-server/dist/index.mjs:9513:18)
+              at async initDb (file:///opt/render/project/src/artifacts/api-server/dist/index.mjs:47159:3)
+      "errno": -3008,
+      "code": "ENOTFOUND",
+      "syscall": "getaddrinfo",
+      "hostname": "base"
+    }
+==> Exited with status 1
