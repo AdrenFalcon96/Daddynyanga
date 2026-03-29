@@ -4,9 +4,9 @@ import { verifyToken } from "../lib/jwt";
 
 const router: IRouter = Router();
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const payload = verifyToken(auth.slice(7));
     (req as any).user = payload;
@@ -169,7 +169,7 @@ router.get("/ai/status", (_req, res) => {
 // Hybrid: OpenRouter → OpenAI → local keyword → fallback
 router.post("/ai/hybrid", async (req, res) => {
   const { message, section = "general" } = req.body;
-  if (!message) return res.status(400).json({ error: "message required" });
+  if (!message) { res.status(400).json({ error: "message required" }); return; }
 
   const lower = String(message).toLowerCase();
   const systemPrompt = SECTION_PROMPTS[section] || SECTION_PROMPTS.general;
@@ -178,7 +178,7 @@ router.post("/ai/hybrid", async (req, res) => {
     if (lower.includes(key) && (sections.includes(section) || sections.includes("general"))) {
       const aiReply = (await openrouterChat(systemPrompt, message)) || (await openaiChat(systemPrompt, message));
       const src = aiReply ? (openrouter ? "openrouter" : "openai") : "local";
-      return res.json({ reply: aiReply || tip, source: src });
+      res.json({ reply: aiReply || tip, source: src }); return;
     }
   }
 
@@ -190,7 +190,7 @@ router.post("/ai/hybrid", async (req, res) => {
 
 router.post("/ai/chat", async (req, res) => {
   const { message } = req.body;
-  if (!message) return res.status(400).json({ error: "message required" });
+  if (!message) { res.status(400).json({ error: "message required" }); return; }
   const systemPrompt = SECTION_PROMPTS.farmer;
   const aiReply = (await openrouterChat(systemPrompt, message)) || (await openaiChat(systemPrompt, message));
   res.json({ reply: aiReply || SECTION_FALLBACKS.farmer, source: aiReply ? (openrouter ? "openrouter" : "openai") : "local" });
@@ -198,13 +198,13 @@ router.post("/ai/chat", async (req, res) => {
 
 router.post("/ai/student", async (req, res) => {
   const { message, context } = req.body;
-  if (!message) return res.status(400).json({ error: "message required" });
+  if (!message) { res.status(400).json({ error: "message required" }); return; }
   const lower = String(message).toLowerCase();
   const systemPrompt = SECTION_PROMPTS.student;
   for (const [key, tip, sections] of LOCAL_TIPS) {
     if (lower.includes(key) && sections.includes("student")) {
       const aiReply = (await openrouterChat(systemPrompt, message)) || (await openaiChat(systemPrompt, message));
-      return res.json({ reply: aiReply || (context ? `[${context}] ${tip}` : tip), source: aiReply ? (openrouter ? "openrouter" : "openai") : "local" });
+      res.json({ reply: aiReply || (context ? `[${context}] ${tip}` : tip), source: aiReply ? (openrouter ? "openrouter" : "openai") : "local" }); return;
     }
   }
   const aiReply = (await openrouterChat(systemPrompt, message)) || (await openaiChat(systemPrompt, message));
@@ -216,7 +216,7 @@ router.post("/ai/student", async (req, res) => {
 
 router.post("/ai/admin", requireAuth, async (req, res) => {
   const { message, section } = req.body;
-  if (!message) return res.status(400).json({ error: "message required" });
+  if (!message) { res.status(400).json({ error: "message required" }); return; }
   const sectionKey = section || "admin";
   const systemPrompt = SECTION_PROMPTS[sectionKey] || SECTION_PROMPTS.admin;
   const aiReply = (await openrouterChat(systemPrompt, message)) || (await openaiChat(systemPrompt, message));
@@ -230,7 +230,7 @@ router.post("/ai/admin", requireAuth, async (req, res) => {
 // Generate image (requires auth to prevent abuse)
 router.post("/ai/generate-image", requireAuth, async (req, res) => {
   const { prompt, requestId } = req.body;
-  if (!prompt) return res.status(400).json({ error: "prompt required" });
+  if (!prompt) { res.status(400).json({ error: "prompt required" }); return; }
 
   let imageUrl = `https://picsum.photos/seed/${Date.now()}/800/600`;
   let source = "placeholder";
@@ -244,7 +244,7 @@ router.post("/ai/generate-image", requireAuth, async (req, res) => {
         size: "1024x1024",
         quality: "standard",
       });
-      if (imgRes.data[0]?.url) { imageUrl = imgRes.data[0].url; source = "openai-dalle3"; }
+      if (imgRes.data?.[0]?.url) { imageUrl = imgRes.data[0].url; source = "openai-dalle3"; }
     } catch (err: any) {
       console.warn("[DALL-E 3] failed:", err?.message);
       if (openrouter) {
@@ -268,9 +268,9 @@ router.post("/ai/generate-image", requireAuth, async (req, res) => {
 
 router.post("/ai/generate-video", requireAuth, async (req, res) => {
   const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ error: "prompt required" });
+  if (!prompt) { res.status(400).json({ error: "prompt required" }); return; }
   const result = await sisifGenerateVideo(prompt);
-  if (result.videoUrl) return res.json({ videoUrl: result.videoUrl, source: result.source });
+  if (result.videoUrl) { res.json({ videoUrl: result.videoUrl, source: result.source }); return; }
   res.json({
     videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     source: "placeholder",

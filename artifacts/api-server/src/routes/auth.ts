@@ -25,12 +25,12 @@ seedDemoUsers().catch(console.error);
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+  if (!email || !password) { res.status(400).json({ message: "Email and password required" }); return; }
   try {
     const result = await query("SELECT * FROM users WHERE LOWER(email) = LOWER($1)", [email]);
     const user = result.rows[0];
     if (!user || user.password !== hashPassword(String(password))) {
-      return res.status(401).json({ message: "Invalid email or password" });
+      res.status(401).json({ message: "Invalid email or password" }); return;
     }
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     res.json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
@@ -41,12 +41,12 @@ router.post("/login", async (req, res) => {
 
 router.post("/register", async (req, res) => {
   const { email, password, role } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+  if (!email || !password) { res.status(400).json({ message: "Email and password required" }); return; }
   const allowedRoles = ["farmer", "merchant", "seller", "student", "agri_intern"];
   const userRole = allowedRoles.includes(role) ? role : "farmer";
   try {
     const existing = await query("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", [email]);
-    if (existing.rows.length > 0) return res.status(409).json({ message: "Email already in use" });
+    if (existing.rows.length > 0) { res.status(409).json({ message: "Email already in use" }); return; }
     const result = await query(
       "INSERT INTO users (email, password, role, display_name) VALUES ($1, $2, $3, $4) RETURNING *",
       [email, hashPassword(String(password)), userRole, String(email).split("@")[0]]
@@ -61,12 +61,12 @@ router.post("/register", async (req, res) => {
 
 router.get("/me", async (req, res) => {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const payload = verifyToken(auth.slice(7));
     const result = await query("SELECT * FROM users WHERE id = $1", [payload.id]);
     const user = result.rows[0];
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) { res.status(404).json({ error: "User not found" }); return; }
     res.json({ id: user.id, email: user.email, role: user.role, displayName: user.display_name });
   } catch {
     res.status(401).json({ error: "Invalid token" });

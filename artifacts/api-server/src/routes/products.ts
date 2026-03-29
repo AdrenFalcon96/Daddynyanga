@@ -2,9 +2,9 @@ import { Router, type IRouter, type Request, type Response, type NextFunction } 
 import { query } from "../lib/db";
 import { verifyToken } from "../lib/jwt";
 
-function requireAuth(req: Request, res: Response, next: NextFunction) {
+function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const payload = verifyToken(auth.slice(7));
     (req as any).user = payload;
@@ -55,7 +55,7 @@ router.get("/products", async (req, res) => {
 router.get("/products/:id", async (req, res) => {
   try {
     const result = await query("SELECT * FROM products WHERE id = $1", [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: "Product not found" });
+    if (result.rows.length === 0) { res.status(404).json({ error: "Product not found" }); return; }
     res.json(result.rows[0]);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -68,7 +68,7 @@ router.post("/products", requireAuth, async (req, res) => {
   const sName = sellerName || seller_name;
   const sPhone = sellerPhone || seller_phone || null;
   if (!name || !description || !category || !quantity || price === undefined || !location || !sName) {
-    return res.status(400).json({ error: "Missing required fields" });
+    res.status(400).json({ error: "Missing required fields" }); return;
   }
   try {
     const result = await query(
@@ -87,11 +87,11 @@ router.post("/products/:id/request", async (req, res) => {
   const bName = buyerName || buyer_name;
   const bPhone = buyerPhone || buyer_phone;
   if (!bName || !bPhone) {
-    return res.status(400).json({ error: "buyerName and buyerPhone are required" });
+    res.status(400).json({ error: "buyerName and buyerPhone are required" }); return;
   }
   try {
     const prod = await query("SELECT * FROM products WHERE id = $1", [req.params.id]);
-    if (prod.rows.length === 0) return res.status(404).json({ error: "Product not found" });
+    if (prod.rows.length === 0) { res.status(404).json({ error: "Product not found" }); return; }
     const result = await query(
       `INSERT INTO product_requests (product_id, buyer_name, buyer_phone, message, status)
        VALUES ($1, $2, $3, $4, 'pending') RETURNING *`,
@@ -106,10 +106,10 @@ router.post("/products/:id/request", async (req, res) => {
 router.patch("/products/:id/status", requireAuth, async (req, res) => {
   const { status } = req.body;
   const allowed = ["available", "sold", "reserved"];
-  if (!allowed.includes(status)) return res.status(400).json({ error: "Invalid status" });
+  if (!allowed.includes(status)) { res.status(400).json({ error: "Invalid status" }); return; }
   try {
     const result = await query("UPDATE products SET status = $1 WHERE id = $2 RETURNING *", [status, req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: "Product not found" });
+    if (result.rows.length === 0) { res.status(404).json({ error: "Product not found" }); return; }
     res.json(result.rows[0]);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

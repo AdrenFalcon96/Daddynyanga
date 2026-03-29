@@ -4,13 +4,13 @@ import { verifyToken } from "../lib/jwt";
 
 const router: IRouter = Router();
 
-function adminAuth(req: Request, res: Response, next: NextFunction) {
+function adminAuth(req: Request, res: Response, next: NextFunction): void {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const payload = verifyToken(auth.slice(7));
     if (payload.role !== "admin") {
-      return res.status(403).json({ error: "Forbidden — admin role required" });
+      res.status(403).json({ error: "Forbidden — admin role required" }); return;
     }
     (req as any).user = payload;
     next();
@@ -43,7 +43,7 @@ router.post("/admin/advert-requests/:id/publish", adminAuth, async (req, res) =>
   try {
     const r = await query("SELECT * FROM advert_requests WHERE id = $1", [req.params.id]);
     const ar = r.rows[0];
-    if (!ar) return res.status(404).json({ error: "Advert request not found" });
+    if (!ar) { res.status(404).json({ error: "Advert request not found" }); return; }
     const adType = ar.advert_type || (ar.generated_video_url ? "video" : "image");
     const mediaUrl = adType === "video" ? ar.generated_video_url : ar.generated_image_url;
     const result = await query(
@@ -66,7 +66,7 @@ router.get("/admin/ads", adminAuth, async (_req, res) => {
 
 router.post("/admin/ads", adminAuth, async (req, res) => {
   const { title, description, image_url, video_url, type, whatsapp, published } = req.body;
-  if (!title) return res.status(400).json({ error: "title is required" });
+  if (!title) { res.status(400).json({ error: "title is required" }); return; }
   try {
     const result = await query(
       `INSERT INTO ads (title, description, image_url, video_url, type, whatsapp, published)
@@ -89,7 +89,7 @@ router.patch("/admin/ads/:id", adminAuth, async (req, res) => {
   if (type !== undefined) { fields.push(`type = $${idx++}`); values.push(type); }
   if (whatsapp !== undefined) { fields.push(`whatsapp = $${idx++}`); values.push(whatsapp || null); }
   if (published !== undefined) { fields.push(`published = $${idx++}`); values.push(published); }
-  if (fields.length === 0) return res.status(400).json({ error: "No fields to update" });
+  if (fields.length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
   values.push(req.params.id);
   try {
     const result = await query(`UPDATE ads SET ${fields.join(", ")} WHERE id = $${idx} RETURNING *`, values);
@@ -196,7 +196,7 @@ router.patch("/admin/transactions/:source/:id", adminAuth, async (req, res) => {
   const { source, id } = req.params;
   const { payment_status } = req.body;
   if (!["paid", "pending", "unpaid", "refunded"].includes(payment_status)) {
-    return res.status(400).json({ error: "Invalid payment_status" });
+    res.status(400).json({ error: "Invalid payment_status" }); return;
   }
   try {
     const table = source === "consultation" ? "consultations" : "advert_requests";
@@ -223,7 +223,7 @@ router.post("/admin/generate-image", adminAuth, async (req, res) => {
         size: "1024x1024",
         quality: "standard",
       });
-      if (imgRes.data[0]?.url) { imageUrl = imgRes.data[0].url; source = "openai"; }
+      if (imgRes.data?.[0]?.url) { imageUrl = imgRes.data[0].url; source = "openai"; }
     } catch (err: any) {
       console.warn("[DALL-E] image generation failed:", err?.message);
     }
@@ -308,7 +308,7 @@ router.get("/admin/study-materials", adminAuth, async (_req, res) => {
 
 router.post("/admin/study-materials", adminAuth, async (req, res) => {
   const { title, description, grade, subject, file_type, file_data, file_name, mime_type } = req.body;
-  if (!title || !grade || !file_type) return res.status(400).json({ error: "title, grade, and file_type are required" });
+  if (!title || !grade || !file_type) { res.status(400).json({ error: "title, grade, and file_type are required" }); return; }
   try {
     const result = await query(
       `INSERT INTO study_materials (title, description, grade, subject, file_type, file_data, file_name, mime_type)
@@ -366,7 +366,7 @@ router.get("/admin/subjects", adminAuth, async (_req, res) => {
 
 router.post("/admin/subjects", adminAuth, async (req, res) => {
   const { name, grade, category } = req.body;
-  if (!name || !grade) return res.status(400).json({ error: "name and grade are required" });
+  if (!name || !grade) { res.status(400).json({ error: "name and grade are required" }); return; }
   try {
     const result = await query(
       "INSERT INTO subjects (name, grade, category) VALUES ($1, $2, $3) RETURNING *",
@@ -374,7 +374,7 @@ router.post("/admin/subjects", adminAuth, async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
-    if (err.code === "23505") return res.status(409).json({ error: "Subject already exists for this grade" });
+    if (err.code === "23505") { res.status(409).json({ error: "Subject already exists for this grade" }); return; }
     res.status(500).json({ error: err.message });
   }
 });

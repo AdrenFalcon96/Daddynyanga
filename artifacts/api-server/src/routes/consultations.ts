@@ -23,13 +23,13 @@ async function ensureTable() {
 }
 ensureTable().catch(console.error);
 
-function adminAuth(req: Request, res: Response, next: NextFunction) {
+function adminAuth(req: Request, res: Response, next: NextFunction): void {
   const auth = req.headers.authorization;
-  if (!auth?.startsWith("Bearer ")) return res.status(401).json({ error: "Unauthorized" });
+  if (!auth?.startsWith("Bearer ")) { res.status(401).json({ error: "Unauthorized" }); return; }
   try {
     const payload = verifyToken(auth.slice(7));
     if (payload.role !== "admin") {
-      return res.status(403).json({ error: "Forbidden — admin role required" });
+      res.status(403).json({ error: "Forbidden — admin role required" }); return;
     }
     (req as any).user = payload;
     next();
@@ -41,7 +41,7 @@ function adminAuth(req: Request, res: Response, next: NextFunction) {
 router.post("/consultations", async (req, res) => {
   const { name, email, phone, type, message } = req.body;
   if (!name || !email || !type || !message) {
-    return res.status(400).json({ error: "name, email, type, and message are required" });
+    res.status(400).json({ error: "name, email, type, and message are required" }); return;
   }
   const freeTypes = ["student", "farmer", "buyer", "seller", "intern"];
   const paymentStatus = freeTypes.includes(type) ? "free" : "pending";
@@ -63,13 +63,13 @@ router.post("/consultations", async (req, res) => {
 
 router.post("/consultations/:id/confirm-payment", async (req, res) => {
   const { paymentRef } = req.body;
-  if (!paymentRef) return res.status(400).json({ error: "paymentRef required" });
+  if (!paymentRef) { res.status(400).json({ error: "paymentRef required" }); return; }
   try {
     const result = await query(
       "UPDATE consultations SET payment_status = 'paid', status = 'pending' WHERE id = $1 AND payment_ref = $2 RETURNING *",
       [req.params.id, paymentRef]
     );
-    if (!result.rows[0]) return res.status(404).json({ error: "Consultation not found or ref mismatch" });
+    if (!result.rows[0]) { res.status(404).json({ error: "Consultation not found or ref mismatch" }); return; }
     res.json({ success: true, consultation: result.rows[0] });
   } catch (err: any) {
     res.status(500).json({ error: err.message });

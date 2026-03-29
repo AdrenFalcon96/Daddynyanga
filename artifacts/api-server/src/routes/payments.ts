@@ -32,7 +32,7 @@ router.post("/payments/initiate", async (req, res) => {
 
 router.post("/payments/confirm", async (req, res) => {
   const { paymentRef, requestId } = req.body;
-  if (!paymentRef || !requestId) return res.status(400).json({ error: "paymentRef and requestId required" });
+  if (!paymentRef || !requestId) { res.status(400).json({ error: "paymentRef and requestId required" }); return; }
   try {
     const result = await query(
       "UPDATE advert_requests SET payment_status = 'paid', status = 'priority' WHERE id = $1 RETURNING *",

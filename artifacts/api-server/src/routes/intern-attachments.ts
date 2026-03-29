@@ -26,7 +26,7 @@ ensureTable().catch(console.error);
 router.post("/intern-attachments", async (req, res) => {
   const { student_name, student_email, institution, program, year, message } = req.body;
   if (!student_name || !student_email || !institution || !program || !year) {
-    return res.status(400).json({ error: "student_name, student_email, institution, program, and year are required" });
+    res.status(400).json({ error: "student_name, student_email, institution, program, and year are required" }); return;
   }
   try {
     const result = await query(
@@ -65,7 +65,7 @@ router.patch("/intern-attachments/:id", async (req, res) => {
       "UPDATE intern_attachment_requests SET status = $1, response = $2 WHERE id = $3 RETURNING *",
       [status, response || null, req.params.id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ error: "Request not found" });
+    if (result.rows.length === 0) { res.status(404).json({ error: "Request not found" }); return; }
     res.json(result.rows[0]);
   } catch (err: any) {
     res.status(500).json({ error: err.message });

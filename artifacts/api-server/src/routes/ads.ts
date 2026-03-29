@@ -30,7 +30,7 @@ router.get("/ads", async (_req, res) => {
 router.get("/ads/:id", async (req, res) => {
   try {
     const result = await query("SELECT * FROM ads WHERE id = $1 AND published = true", [req.params.id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: "Ad not found" });
+    if (result.rows.length === 0) { res.status(404).json({ error: "Ad not found" }); return; }
     res.json(result.rows[0]);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -41,7 +41,7 @@ router.post("/advert-requests", async (req, res) => {
   const { name, email, phone, description, message, type = "standard", advert_type = "image" } = req.body;
   const msg = message || description;
   if (!name || !email || !msg) {
-    return res.status(400).json({ error: "name, email, and message are required" });
+    res.status(400).json({ error: "name, email, and message are required" }); return;
   }
   try {
     const result = await query(
