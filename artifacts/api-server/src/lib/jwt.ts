@@ -43,7 +43,7 @@ export function verifyToken(token: string): Record<string, unknown> {
 
 // Password hashing uses a separate, stable salt (NOT the JWT secret)
 // so passwords remain valid after rotating JWT_SECRET
-const PASSWORD_SALT = process.env.PASSWORD_SALT || "samanyanga-password-salt-2024-stable";
+const PASSWORD_SALT = process.env.PASSWORD_SALT || "samanyanga-fixed-secret-2024";
 
 export function hashPassword(password: string): string {
   return createHmac("sha256", PASSWORD_SALT).update(password).digest("hex");

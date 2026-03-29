@@ -15,44 +15,27 @@ app.use(
     },
   }),
 );
+
 app.use(
   cors({
-    origin: [
-      "https://daddynyanga.onrender.com",
-      "https://samanyanga-companion-jmu9.onrender.com",
-      /^http:\/\/localhost(:\d+)?$/,
-      /^http:\/\/172\.\d+\.\d+\.\d+(:\d+)?$/,
-    ],
-    credentials: true,
+    origin: (_origin, callback) => {
+      callback(null, true);
+    },
+    credentials: false,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
   }),
 );
+
+app.options("/{*path}", cors());
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 app.get("/", (_req, res) => {
-  res.json({ name: "Samanyanga API", status: "running", docs: "/api/health" });
+  res.json({ name: "Samanyanga API", status: "running", version: "2.0" });
 });
 
 app.use("/api", router);
-
-// Serve frontend static build in production (only when SERVE_STATIC is explicitly enabled)
-if (process.env.NODE_ENV === "production" && process.env.SERVE_STATIC === "true") {
-  const { default: path } = await import("path");
-  const { fileURLToPath } = await import("url");
-  const { existsSync } = await import("fs");
-  const staticDir = process.env.STATIC_DIR
-    || path.join(path.dirname(fileURLToPath(import.meta.url)), "public");
-
-  if (existsSync(staticDir)) {
-    logger.info({ staticDir }, "Serving static files");
-    const { default: expressModule } = await import("express");
-    app.use(expressModule.static(staticDir));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(staticDir, "index.html"));
-    });
-  } else {
-    logger.warn({ staticDir }, "Static dir not found, skipping static file serving");
-  }
-}
 
 export default app;
