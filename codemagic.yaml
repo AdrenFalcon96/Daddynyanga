@@ -21,6 +21,7 @@ workflows:
     scripts:
       - name: Install pnpm (if not already present)
         script: |
+          corepack enable pnpm || npm install -g pnpm@10
           which pnpm || npm install -g pnpm@10
 
       - name: Install project dependencies
