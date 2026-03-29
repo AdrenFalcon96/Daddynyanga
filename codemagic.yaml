@@ -9,7 +9,6 @@ workflows:
         - keystore_credentials
       vars:
         PACKAGE_NAME: "zw.co.samanyanga.companion"
-        ANDROID_OUTPUT: artifacts/samanyanga/android/app/build/outputs/apk
 
     triggering:
       events:
@@ -20,14 +19,13 @@ workflows:
           source: true
 
     scripts:
-      - name: Install pnpm
+      - name: Install pnpm (if not already present)
         script: |
-          npm install -g pnpm@10
+          which pnpm || npm install -g pnpm@10
 
       - name: Install project dependencies
         script: |
           pnpm install --no-frozen-lockfile
-        working_directory: /home/runner/project
 
       - name: Build web assets for mobile
         script: |
@@ -47,25 +45,29 @@ workflows:
 
       - name: Set app version from build number
         script: |
-          PROPERTIES_FILE="artifacts/samanyanga/android/app/build.gradle"
-          sed -i "s/versionCode .*/versionCode $BUILD_NUMBER/" "$PROPERTIES_FILE"
-          sed -i "s/versionName .*/versionName \"1.0.$BUILD_NUMBER\"/" "$PROPERTIES_FILE"
+          GRADLE_FILE="artifacts/samanyanga/android/app/build.gradle"
+          sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" "$GRADLE_FILE"
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.$BUILD_NUMBER\"/" "$GRADLE_FILE"
 
-      - name: Build debug APK (unsigned — for testing)
+      - name: Build debug APK (for testing — no keystore needed)
         script: |
           cd artifacts/samanyanga/android
           ./gradlew assembleDebug
 
-      - name: Build release APK (signed — for distribution)
+      - name: Build release APK (only if keystore is configured)
         script: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "No keystore configured — skipping release build."
+            exit 0
+          fi
           cd artifacts/samanyanga/android
-          # Decode keystore from base64 secret
+          mkdir -p app/keystore
           echo "$KEYSTORE_B64" | base64 -d > app/keystore/release.jks
           ./gradlew assembleRelease \
-            -Pandroid.injected.signing.store.file=$(pwd)/app/keystore/release.jks \
-            -Pandroid.injected.signing.store.password=$KEYSTORE_PASSWORD \
-            -Pandroid.injected.signing.key.alias=$KEY_ALIAS \
-            -Pandroid.injected.signing.key.password=$KEY_PASSWORD
+            -Pandroid.injected.signing.store.file="$(pwd)/app/keystore/release.jks" \
+            -Pandroid.injected.signing.store.password="$KEYSTORE_PASSWORD" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASSWORD"
 
     artifacts:
       - artifacts/samanyanga/android/app/build/outputs/apk/debug/app-debug.apk
