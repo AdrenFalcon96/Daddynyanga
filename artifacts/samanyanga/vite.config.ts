@@ -72,6 +72,16 @@ export default defineConfig({
             },
           },
           {
+            // Study material file data — CacheFirst so saved materials work offline
+            urlPattern: /\/api\/study-materials\/[^/]+\/data/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "samanyanga-materials-v1",
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+              cacheableResponse: { statuses: [200] },
+            },
+          },
+          {
             urlPattern: /\/api\/(subjects|products|ads|study-materials)/,
             handler: "NetworkFirst",
             options: {

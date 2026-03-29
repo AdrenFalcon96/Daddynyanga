@@ -82,7 +82,7 @@ define(['./workbox-6084b1c7'], (function (workbox) { 'use strict';
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
     "url": "/index.html",
-    "revision": "0.e6cjtd0asok"
+    "revision": "0.tmoqcrrgof8"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
@@ -96,6 +96,15 @@ define(['./workbox-6084b1c7'], (function (workbox) { 'use strict';
       maxAgeSeconds: 31536000
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\/api\/study-materials\/[^/]+\/data/, new workbox.CacheFirst({
+    "cacheName": "samanyanga-materials-v1",
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 100,
+      maxAgeSeconds: 2592000
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [200]
     })]
   }), 'GET');
   workbox.registerRoute(/\/api\/(subjects|products|ads|study-materials)/, new workbox.NetworkFirst({
