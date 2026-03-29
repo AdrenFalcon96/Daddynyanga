@@ -19,6 +19,7 @@ app.use(
   cors({
     origin: [
       "https://daddynyanga.onrender.com",
+      "https://samanyanga-companion-jmu9.onrender.com",
       /^http:\/\/localhost(:\d+)?$/,
       /^http:\/\/172\.\d+\.\d+\.\d+(:\d+)?$/,
     ],
