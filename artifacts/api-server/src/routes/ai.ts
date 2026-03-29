@@ -20,20 +20,29 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
-const openrouter = (process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY)
-  ? new OpenAI({
-      apiKey: process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY!,
-      baseURL: process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-      defaultHeaders: {
-        "HTTP-Referer": "https://samanyanga.replit.app",
-        "X-Title": "Samanyanga Companion",
-      },
-    })
+const makeOpenRouterClient = (apiKey: string, baseURL: string) =>
+  new OpenAI({
+    apiKey,
+    baseURL,
+    defaultHeaders: {
+      "HTTP-Referer": "https://samanyanga.replit.app",
+      "X-Title": "Samanyanga Companion",
+    },
+  });
+
+const openrouterUser = process.env.OPENROUTER_API_KEY
+  ? makeOpenRouterClient(process.env.OPENROUTER_API_KEY, "https://openrouter.ai/api/v1")
   : null;
+
+const openrouterReplit = process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY && process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL
+  ? makeOpenRouterClient(process.env.AI_INTEGRATIONS_OPENROUTER_API_KEY, process.env.AI_INTEGRATIONS_OPENROUTER_BASE_URL)
+  : null;
+
+const openrouter = openrouterUser || openrouterReplit;
 
 const OPENROUTER_MODEL = "mistralai/ministral-8b-2512";
 
-const SISIF_API_KEY = process.env.SISIF_AI_API_KEY || null;
+const SISIF_API_KEY = process.env.SISIF_API_KEY || process.env.SISIF_AI_API_KEY || null;
 const SISIF_BASE = "https://sisif.ai/api";
 
 const LOCAL_TIPS: [string, string, string[]][] = [
@@ -119,18 +128,24 @@ async function openaiChat(systemPrompt: string, userMessage: string): Promise<st
 }
 
 async function openrouterChat(systemPrompt: string, userMessage: string): Promise<string | null> {
-  if (!openrouter) return null;
-  try {
-    const res = await openrouter.chat.completions.create({
-      model: OPENROUTER_MODEL,
-      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
-      max_tokens: 8192,
-    });
-    return res.choices[0]?.message?.content || null;
-  } catch (err: any) {
-    console.warn("[OpenRouter] chat failed:", err?.message || err);
-    return null;
+  const clients: [string, OpenAI][] = [
+    ...(openrouterUser ? [["user-key", openrouterUser] as [string, OpenAI]] : []),
+    ...(openrouterReplit ? [["replit-integration", openrouterReplit] as [string, OpenAI]] : []),
+  ];
+  for (const [label, client] of clients) {
+    try {
+      const res = await client.chat.completions.create({
+        model: OPENROUTER_MODEL,
+        messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
+        max_tokens: 8192,
+      });
+      const content = res.choices[0]?.message?.content;
+      if (content) return content;
+    } catch (err: any) {
+      console.warn(`[OpenRouter:${label}] failed:`, err?.message || err);
+    }
   }
+  return null;
 }
 
 async function sisifGenerateVideo(prompt: string): Promise<{ videoUrl: string | null; jobId?: string; source: string; error?: string }> {
