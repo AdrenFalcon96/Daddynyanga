@@ -3,25 +3,34 @@ services:
     name: samanyanga-companion
     env: node
     plan: free
+    region: oregon
+    healthCheckPath: /api/healthz
+
     buildCommand: |
       npm install -g pnpm@10
       pnpm install --frozen-lockfile
-      BASE_PATH=/ pnpm --filter @workspace/samanyanga run build
+      BASE_PATH=/ PORT=10000 pnpm --filter @workspace/samanyanga run build
       pnpm --filter @workspace/api-server run build
       mkdir -p artifacts/api-server/public
       cp -r artifacts/samanyanga/dist/public/. artifacts/api-server/public/
+
     startCommand: node artifacts/api-server/dist/index.mjs
+
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: BASE_PATH
+        value: /
+
+      # Tells the API server to also serve the built frontend files
       - key: SERVE_STATIC
         value: "true"
       - key: STATIC_DIR
         value: artifacts/api-server/public
-      - key: BASE_PATH
-        value: /
+
+      # Secrets — set these in the Render dashboard (do NOT commit values here)
       - key: DATABASE_URL
         sync: false
       - key: JWT_SECRET
