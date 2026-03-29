@@ -4,6 +4,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuthGuard } from "@/lib/useAuthGuard";
 import AiChatPanel from "@/components/AiChatPanel";
+import { useOffline } from "@/hooks/useOffline";
+import { addToQueue } from "@/lib/offlineQueue";
 
 interface InternRequest {
   id: string;

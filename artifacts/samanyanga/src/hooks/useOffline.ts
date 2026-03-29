@@ -1,4 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { processQueue, getPendingCount } from "@/lib/offlineQueue";
+import { API_BASE } from "@/lib/queryClient";
 
 export function useOffline() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -35,4 +37,36 @@ export function usePwaReady() {
   };
 
   return { ready, dismissed, dismiss };
+}
+
+export interface QueueResult {
+  sent: number;
+  labels: string[];
+}
+
+export function useOfflineQueue() {
+  const isOffline = useOffline();
+  const [pendingCount, setPendingCount] = useState(() => getPendingCount());
+  const [lastResult, setLastResult] = useState<QueueResult | null>(null);
+
+  // Refresh pending count whenever offline state changes
+  useEffect(() => {
+    setPendingCount(getPendingCount());
+  }, [isOffline]);
+
+  // When coming back online, flush the queue automatically
+  useEffect(() => {
+    if (!isOffline && getPendingCount() > 0) {
+      processQueue(API_BASE).then(result => {
+        setPendingCount(getPendingCount());
+        if (result.sent > 0) setLastResult({ sent: result.sent, labels: result.labels });
+      }).catch(() => {});
+    }
+  }, [isOffline]);
+
+  const clearResult = useCallback(() => setLastResult(null), []);
+
+  const refreshCount = useCallback(() => setPendingCount(getPendingCount()), []);
+
+  return { pendingCount, lastResult, clearResult, refreshCount };
 }

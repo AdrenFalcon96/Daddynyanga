@@ -29,6 +29,41 @@ const STUDENT_RESPONSES: [string, string][] = [
   ["zimbabwe", "Zimbabwe gained independence 18 April 1980. Key eras: Great Zimbabwe (11th–15th c.), colonisation (1890), UDI (1965), liberation war (1970s)."],
 ];
 
+// ── AI Response Cache ─────────────────────────────────────────────────────────
+// Stores successful API answers in localStorage so they work offline later.
+
+const AI_CACHE_KEY = "samanyanga-ai-cache";
+const AI_CACHE_MAX = 60;
+
+interface AiCacheEntry { reply: string; cachedAt: number; }
+
+function getCacheStore(): Record<string, AiCacheEntry> {
+  try { return JSON.parse(localStorage.getItem(AI_CACHE_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function cacheKey(message: string, context?: string): string {
+  return `${(context || "").slice(0, 20)}|${message.toLowerCase().trim().slice(0, 120)}`;
+}
+
+function readCache(key: string): string | null {
+  const store = getCacheStore();
+  return store[key]?.reply ?? null;
+}
+
+function writeCache(key: string, reply: string): void {
+  try {
+    const store = getCacheStore();
+    store[key] = { reply, cachedAt: Date.now() };
+    // Evict oldest entries if over limit
+    const entries = Object.entries(store).sort((a, b) => a[1].cachedAt - b[1].cachedAt);
+    const trimmed = Object.fromEntries(entries.slice(-AI_CACHE_MAX));
+    localStorage.setItem(AI_CACHE_KEY, JSON.stringify(trimmed));
+  } catch { /* storage full — skip */ }
+}
+
+// ── AI Functions ──────────────────────────────────────────────────────────────
+
 export async function hybridAI(message: string, section = "general"): Promise<string> {
   const lower = message.toLowerCase();
   for (const [key, response] of AGRI_RESPONSES) {
@@ -37,6 +72,8 @@ export async function hybridAI(message: string, section = "general"): Promise<st
   for (const [key, response] of STUDENT_RESPONSES) {
     if (lower.includes(key)) return response;
   }
+
+  const ck = cacheKey(message, section);
   try {
     const res = await fetch(`${API_BASE}/api/ai/hybrid`, {
       method: "POST",
@@ -45,11 +82,14 @@ export async function hybridAI(message: string, section = "general"): Promise<st
     });
     if (res.ok) {
       const data = await res.json();
-      return data.reply || "I can help with agricultural and educational questions.";
+      const reply = data.reply || "I can help with agricultural and educational questions.";
+      writeCache(ck, reply);
+      return reply;
     }
-  } catch {
-    // fall through
-  }
+  } catch { /* offline — fall through */ }
+
+  const cached = readCache(ck);
+  if (cached) return `(Offline — saved answer) ${cached}`;
   return "I can help with farming, buying, selling, and studying in Zimbabwe. What would you like to know?";
 }
 
@@ -58,6 +98,8 @@ export async function agriAIHybrid(message: string): Promise<string> {
   for (const [key, response] of AGRI_RESPONSES) {
     if (lower.includes(key)) return response;
   }
+
+  const ck = cacheKey(message, "agri");
   try {
     const res = await fetch(`${API_BASE}/api/ai/chat`, {
       method: "POST",
@@ -66,11 +108,14 @@ export async function agriAIHybrid(message: string): Promise<string> {
     });
     if (res.ok) {
       const data = await res.json();
-      return data.reply || "I can help with agricultural questions about crops, soil, pests, livestock, and Zimbabwe markets.";
+      const reply = data.reply || "I can help with agricultural questions about crops, soil, pests, livestock, and Zimbabwe markets.";
+      writeCache(ck, reply);
+      return reply;
     }
-  } catch {
-    // fall through to default
-  }
+  } catch { /* offline — fall through */ }
+
+  const cached = readCache(ck);
+  if (cached) return `(Offline — saved answer) ${cached}`;
   return "I can help with agricultural questions about crops, soil management, pest control, livestock, and market prices in Zimbabwe. What would you like to know?";
 }
 
@@ -81,6 +126,8 @@ export async function studentAIHybrid(message: string, context?: string): Promis
       return context ? `[${context}] ${response}` : response;
     }
   }
+
+  const ck = cacheKey(message, context);
   try {
     const res = await fetch(`${API_BASE}/api/ai/student`, {
       method: "POST",
@@ -89,10 +136,13 @@ export async function studentAIHybrid(message: string, context?: string): Promis
     });
     if (res.ok) {
       const data = await res.json();
-      return data.reply || "I'm here to help with your studies.";
+      const reply = data.reply || "I'm here to help with your studies.";
+      writeCache(ck, reply);
+      return reply;
     }
-  } catch {
-    // fall through to default
-  }
+  } catch { /* offline — fall through */ }
+
+  const cached = readCache(ck);
+  if (cached) return `(Offline — saved answer) ${cached}`;
   return `I'm here to help with your ${context || "studies"}. Ask me about any subject — mathematics, science, English, history, or exam preparation strategies.`;
 }

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import AiChatPanel from "@/components/AiChatPanel";
+import { useOffline } from "@/hooks/useOffline";
+import { addToQueue } from "@/lib/offlineQueue";
+import { API_BASE } from "@/lib/queryClient";
 
 const TYPES = [
   { key: "student", label: "🎓 Student", desc: "Academic and study consultation", free: true },
@@ -15,6 +18,7 @@ type Step = "type" | "form" | "payment" | "success";
 
 export default function Consultation() {
   const [, navigate] = useLocation();
+  const isOffline = useOffline();
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("type");
   const [name, setName] = useState("");
@@ -25,6 +29,7 @@ export default function Consultation() {
   const [consultationId, setConsultationId] = useState("");
   const [paymentRef, setPaymentRef] = useState("");
   const [paymentConfirming, setPaymentConfirming] = useState(false);
+  const [wasQueued, setWasQueued] = useState(false);
 
   const selectedTypeObj = TYPES.find(t => t.key === selectedType);
 
@@ -32,8 +37,23 @@ export default function Consultation() {
     e.preventDefault();
     if (!selectedType) return;
     setLoading(true);
+
+    // If offline and it's a free consultation, queue it for later delivery
+    if (isOffline && selectedTypeObj?.free) {
+      addToQueue({
+        endpoint: `${API_BASE}/api/consultations`,
+        method: "POST",
+        body: { name, email, phone, type: selectedType, message },
+        label: `${selectedTypeObj.label} consultation from ${name}`,
+      });
+      setWasQueued(true);
+      setStep("success");
+      setLoading(false);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/consultations", {
+      const res = await fetch(`${API_BASE}/api/consultations`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, phone, type: selectedType, message }),
@@ -48,7 +68,19 @@ export default function Consultation() {
         setStep("payment");
       }
     } catch (err: any) {
-      alert("Error: " + err.message);
+      // Network failure on a free consultation — queue for retry
+      if (selectedTypeObj?.free) {
+        addToQueue({
+          endpoint: `${API_BASE}/api/consultations`,
+          method: "POST",
+          body: { name, email, phone, type: selectedType, message },
+          label: `${selectedTypeObj.label} consultation from ${name}`,
+        });
+        setWasQueued(true);
+        setStep("success");
+      } else {
+        alert("Error: " + err.message);
+      }
     } finally {
       setLoading(false);
     }
