@@ -118,6 +118,24 @@ workspace/
 - `study_materials` — uploaded study content (file stored as base64 or URL)
 - `subjects` — ZIMSEC curriculum subjects by grade (dynamic, admin-managed)
 
+## Admin Setup & Recovery
+
+### First-Time Admin Registration
+On a **fresh deployment** (no admin in database): visiting `/admin-login` automatically shows a "Create Admin Account" form. Enter your email and a strong password (min. 8 chars). This can only be done once — after an admin is created, the setup form is permanently replaced by the login form. Only one admin account is allowed.
+
+### Emergency Reset (Published App — Locked Out)
+If you are locked out of the admin account (e.g. the seeded `demo123` password doesn't work in production):
+1. Go to your **Render dashboard → Environment** and add: `ADMIN_RESET_KEY=<any-random-secret>`
+2. Redeploy/restart the service to pick up the new env var
+3. Go to `/admin-login` → click **"Locked out?"**
+4. Fill in your reset key, your email, and new password → click **"Reset & Create Admin"**
+5. You will be logged in automatically
+6. **Remove `ADMIN_RESET_KEY`** from Render env vars after use (for security)
+
+### Notes
+- The demo seed no longer includes `admin@demo.com` — only farmer/student/buyer/seller demo accounts are seeded
+- Existing `admin@demo.com` records in old databases are NOT automatically removed; use the reset flow to replace them
+
 ## Auth & Security
 
 - JWT: HMAC-SHA256, 7-day expiry, signature **verified** on every protected request using `timingSafeEqual`
@@ -133,11 +151,12 @@ workspace/
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | admin@demo.com | demo123 |
 | Farmer | farmer@demo.com | demo123 |
 | Student | student@demo.com | demo123 |
 | Buyer | buyer@demo.com | demo123 |
 | Seller | seller@demo.com | demo123 |
+
+> Admin is no longer a demo account. Use the first-time setup or emergency reset flow (see Admin Setup & Recovery above).
 
 ## AI Integration
 

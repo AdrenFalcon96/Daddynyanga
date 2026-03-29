@@ -10,7 +10,6 @@ async function seedDemoUsers() {
     ["student@demo.com", "demo123", "student", "Demo Student"],
     ["buyer@demo.com", "demo123", "merchant", "Demo Buyer"],
     ["seller@demo.com", "demo123", "seller", "Demo Seller"],
-    ["admin@demo.com", "demo123", "admin", "Admin"],
   ];
   for (const [email, pass, role, displayName] of demos) {
     await query(
@@ -22,6 +21,96 @@ async function seedDemoUsers() {
 }
 
 seedDemoUsers().catch(console.error);
+
+// Check whether an admin account exists (used by the setup page)
+router.get("/admin-setup/status", async (_req, res) => {
+  try {
+    const result = await query("SELECT id FROM users WHERE role = 'admin' LIMIT 1", []);
+    res.json({ adminExists: result.rows.length > 0 });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Emergency admin reset — requires ADMIN_RESET_KEY env var to be set on the server
+// Use this if you are locked out of an existing admin account.
+// Set ADMIN_RESET_KEY in your server environment, call this endpoint, then remove the key.
+router.post("/admin-reset", async (req, res) => {
+  const resetKey = process.env.ADMIN_RESET_KEY;
+  if (!resetKey) {
+    res.status(403).json({ message: "Admin reset is not enabled. Set ADMIN_RESET_KEY on the server to enable it." });
+    return;
+  }
+  const { resetKey: providedKey, email, password } = req.body;
+  if (!providedKey || providedKey !== resetKey) {
+    res.status(403).json({ message: "Invalid reset key." });
+    return;
+  }
+  if (!email || !password) {
+    res.status(400).json({ message: "Email and password are required." });
+    return;
+  }
+  if (String(password).length < 8) {
+    res.status(400).json({ message: "Password must be at least 8 characters." });
+    return;
+  }
+  try {
+    // Remove all existing admin accounts
+    await query("DELETE FROM users WHERE role = 'admin'", []);
+    // Create fresh admin
+    const result = await query(
+      "INSERT INTO users (email, password, role, display_name) VALUES ($1, $2, 'admin', $3) RETURNING *",
+      [email, hashPassword(String(password)), String(email).split("@")[0]]
+    );
+    const user = result.rows[0];
+    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// First-time admin registration — locked once any admin exists
+router.post("/admin-setup", async (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    res.status(400).json({ message: "Email and password are required" });
+    return;
+  }
+  if (String(password).length < 8) {
+    res.status(400).json({ message: "Password must be at least 8 characters" });
+    return;
+  }
+  try {
+    const adminCheck = await query("SELECT id FROM users WHERE role = 'admin' LIMIT 1", []);
+    if (adminCheck.rows.length > 0) {
+      res.status(403).json({ message: "An admin account already exists. Contact the current administrator." });
+      return;
+    }
+    const existing = await query("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", [email]);
+    if (existing.rows.length > 0) {
+      // If the email exists but has a non-admin role, upgrade it; otherwise it is already the admin
+      const existingUser = existing.rows[0];
+      const upd = await query(
+        "UPDATE users SET role = 'admin', password = $1 WHERE id = $2 RETURNING *",
+        [hashPassword(String(password)), existingUser.id]
+      );
+      const user = upd.rows[0];
+      const token = signToken({ id: user.id, email: user.email, role: user.role });
+      res.status(200).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
+      return;
+    }
+    const result = await query(
+      "INSERT INTO users (email, password, role, display_name) VALUES ($1, $2, 'admin', $3) RETURNING *",
+      [email, hashPassword(String(password)), String(email).split("@")[0]]
+    );
+    const user = result.rows[0];
+    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    res.status(201).json({ token, user: { id: user.id, email: user.email, role: user.role, displayName: user.display_name } });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
 
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
