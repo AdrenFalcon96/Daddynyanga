@@ -28,7 +28,7 @@ workspace/
 │   └── api-server/          # Express API server (port 8080 dev)
 ├── scripts/
 │   └── src/init-db.ts       # DB schema + seed (run with pnpm --filter @workspace/scripts run init-db)
-├── render.yaml              # Render.com deployment config (combined service)
+├── render.yaml              # Render.com deployment config (API web service + static site)
 ├── .env.example             # Environment variable template
 └── replit.md                # This file
 ```
@@ -139,7 +139,7 @@ If you are locked out of the admin account (e.g. the seeded `demo123` password d
 ## Auth & Security
 
 - JWT: HMAC-SHA256, 7-day expiry, signature **verified** on every protected request using `timingSafeEqual`
-- `JWT_SECRET` env var is **required** in production (auto-generated and stored); throws if missing in prod
+- `JWT_SECRET` env var is **optional**: if not set, a stable secret is automatically derived from `DATABASE_URL` via HMAC-SHA256. This means no extra env var is needed on Render as long as `DATABASE_URL` is set.
 - Password hashing uses a separate stable `PASSWORD_SALT` (independent of JWT_SECRET, so rotating JWT_SECRET doesn't invalidate passwords)
 - Admin access: `role === "admin"` strictly enforced, no email-based bypass
 - AI generate-image, generate-video, and admin AI endpoints require valid Bearer token (prevents API abuse)
@@ -167,11 +167,17 @@ If you are locked out of the admin account (e.g. the seeded `demo123` password d
 
 ## Deployment (Render)
 
-See `render.yaml` at root. Single combined service:
-1. Builds frontend (Vite, BASE_PATH=/) and API (esbuild)
-2. Copies frontend dist into `artifacts/api-server/public/`
-3. Starts Express server which serves API + static frontend
-4. Required env vars: `DATABASE_URL`, `JWT_SECRET`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`
+See `render.yaml` at root. Two separate Render services:
+
+### `samanyanga-api` (Web Service)
+- Builds and runs the Express API server only
+- Required env vars: `DATABASE_URL`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`
+- `JWT_SECRET` is **optional** — automatically derived from `DATABASE_URL` if not set
+
+### `samanyanga-web` (Static Site)
+- Builds the Vite/React frontend and publishes it as a static site
+- Required env vars: `VITE_API_URL` — set to your `samanyanga-api` Render URL (e.g. `https://samanyanga-api.onrender.com`)
+- All routes rewrite to `/index.html` for SPA support
 
 ## Wallpaper
 

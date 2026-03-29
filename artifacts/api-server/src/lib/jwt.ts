@@ -2,14 +2,24 @@ import { createHmac, timingSafeEqual } from "crypto";
 
 const SECRET = process.env.JWT_SECRET;
 
-if (!SECRET) {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("JWT_SECRET environment variable is required in production");
+// If JWT_SECRET is not explicitly set, derive a stable secret from DATABASE_URL.
+// DATABASE_URL is already required for the DB connection, so this removes the need
+// for a separate JWT_SECRET env var in production.
+function deriveSecret(): string {
+  const dbUrl = process.env.DATABASE_URL;
+  if (dbUrl) {
+    return createHmac("sha256", "samanyanga-jwt-derive-v1").update(dbUrl).digest("hex");
   }
-  console.warn("[WARN] JWT_SECRET is not set — using insecure default. Set JWT_SECRET before deploying.");
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Cannot derive JWT secret: DATABASE_URL is required in production when JWT_SECRET is not set."
+    );
+  }
+  console.warn("[WARN] Neither JWT_SECRET nor DATABASE_URL is set — using insecure dev default.");
+  return "samanyanga-dev-only-insecure-secret-change-before-deploy";
 }
 
-const EFFECTIVE_SECRET = SECRET || "samanyanga-dev-only-insecure-secret-change-before-deploy";
+const EFFECTIVE_SECRET = SECRET ?? deriveSecret();
 
 export function signToken(payload: Record<string, unknown>): string {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
