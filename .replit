@@ -70,3 +70,5 @@ channel = "stable-25_05"
 [userenv.shared]
 PORT = "8080"
 JWT_SECRET = "a6e50f9b127a1325319f481947988110ee08ea76e5ec40f13dcfe9b300f97227fe421317ceaeff77f53664ebc255e51a630168358fdf0fccfd4f536126de2241"
+ADMIN_EMAIL = "admin@samanyanga.com"
+ADMIN_RECOVERY_CODE = "samanyanga-recovery-2025"
