@@ -19,7 +19,7 @@ function getTokenRole(): string | null {
 const features = [
   {
     icon: "🧺",
-    label: "Agricultural Marketplace",
+    label: "AgriMarket",
     desc: "Buy & sell fresh produce directly from farmers",
     color: "#16a34a",
     route: "/farmer",
@@ -156,7 +156,7 @@ export default function Home() {
           {/* Right nav */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <button
-              onClick={() => navigate("/register")}
+              onClick={() => navigate("/register?for=agri")}
               style={{
                 padding: "8px 14px",
                 background: "rgba(255,255,255,0.12)",
@@ -272,18 +272,32 @@ export default function Home() {
 
           {/* CTA buttons */}
           <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center", width: "100%" }}>
-            <button
-              onClick={() => navigate("/farmer")}
-              style={{ ...btnBase, background: "#16a34a", color: "#fff", boxShadow: "0 4px 20px rgba(22,163,74,0.5)" }}
-            >
-              🧺 Farm Marketplace
-            </button>
-            <button
-              onClick={() => navigate("/student-companion")}
-              style={{ ...btnBase, background: "#4f46e5", color: "#fff", boxShadow: "0 4px 20px rgba(79,70,229,0.5)" }}
-            >
-              🎓 Study Hub
-            </button>
+            {/* AgriMarket */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: "100%" }}>
+              <button
+                onClick={() => navigate("/farmer")}
+                style={{ ...btnBase, background: "#16a34a", color: "#fff", boxShadow: "0 4px 20px rgba(22,163,74,0.5)" }}
+              >
+                🧺 AgriMarket
+              </button>
+              <button onClick={() => navigate("/register?for=agri")}
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+                Register for AgriMarket →
+              </button>
+            </div>
+            {/* Study Hub */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, width: "100%" }}>
+              <button
+                onClick={() => navigate("/student-companion")}
+                style={{ ...btnBase, background: "#4f46e5", color: "#fff", boxShadow: "0 4px 20px rgba(79,70,229,0.5)" }}
+              >
+                🎓 Study Hub
+              </button>
+              <button onClick={() => navigate("/register?for=study")}
+                style={{ background: "none", border: "none", color: "rgba(255,255,255,0.55)", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
+                Register as Student →
+              </button>
+            </div>
           </div>
 
           {/* Quick links */}
