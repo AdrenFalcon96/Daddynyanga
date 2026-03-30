@@ -112,19 +112,12 @@ export default function AdminLogin() {
     }
   };
 
-  // ── Regular login (password-only when email is stored; fallback shows email) ──
+  // ── Regular login — password-only; backend resolves email from its own constant ──
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true); setError("");
     try {
-      const body = storedEmail
-        ? { password }
-        : { email, password };
-      const res = await apiRequest("POST", "/api/admin-login", body);
-      if (!storedEmail && email) {
-        storeAdminEmail(email);
-        setStoredEmail(email);
-      }
+      const res = await apiRequest("POST", "/api/admin-login", { password });
       localStorage.setItem("token", res.token);
       navigate("/admin");
     } catch (err: any) {
@@ -266,13 +259,6 @@ export default function AdminLogin() {
               </div>
               {error && <div style={{ marginBottom: 14, padding: "10px 14px", background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 8, fontSize: 13, color: "#991b1b" }}>{error}</div>}
               <form onSubmit={handleLogin}>
-                {/* Only show email field if not stored on this device */}
-                {!storedEmail && (
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Admin Email</label>
-                    <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="admin@example.com" style={inp} autoComplete="username" />
-                  </div>
-                )}
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>Password</label>
                   <div style={{ position: "relative", marginTop: 4 }}>

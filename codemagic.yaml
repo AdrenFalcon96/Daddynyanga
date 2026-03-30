@@ -9,6 +9,7 @@ workflows:
         - keystore_credentials
       vars:
         PACKAGE_NAME: "zw.co.samanyanga.companion"
+        VITE_API_URL: "https://samanyanga-api.onrender.com"
 
     triggering:
       events:
@@ -30,7 +31,7 @@ workflows:
 
       - name: Build web assets for mobile
         script: |
-          BASE_PATH=/ pnpm --filter @workspace/samanyanga run build:mobile
+          BASE_PATH=/ VITE_API_URL=$VITE_API_URL pnpm --filter @workspace/samanyanga run build:mobile
 
       - name: Add Android platform (first time only)
         script: |
@@ -47,8 +48,8 @@ workflows:
       - name: Set app version from build number
         script: |
           GRADLE_FILE="artifacts/samanyanga/android/app/build.gradle"
-          sed -i '' "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" "$GRADLE_FILE"
-          sed -i '' "s/versionName \"[^\"]*\"/versionName \"1.0.$BUILD_NUMBER\"/" "$GRADLE_FILE"
+          sed -i "s/versionCode [0-9]*/versionCode $BUILD_NUMBER/" "$GRADLE_FILE"
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.$BUILD_NUMBER\"/" "$GRADLE_FILE"
 
       - name: Build debug APK (for testing — no keystore needed)
         script: |

@@ -7,6 +7,7 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: "https",
     cleartext: false,
+    allowNavigation: ["samanyanga-api.onrender.com"],
   },
   android: {
     buildOptions: {
