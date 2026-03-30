@@ -30,6 +30,10 @@ services:
         sync: false
       - key: SISIF_AI_API_KEY
         sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_RECOVERY_CODE
+        sync: false
 
   # ── Static Website (Frontend) ──────────────────────────────────────────────
   - type: static

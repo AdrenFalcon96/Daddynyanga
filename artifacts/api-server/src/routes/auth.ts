@@ -4,15 +4,16 @@ import { signToken, verifyToken, hashPassword, hashBcrypt, verifyBcrypt } from "
 
 const router: IRouter = Router();
 
-// ── Hardcoded admin identity ──────────────────────────────────────────────────
-// This is the only email that may ever become the admin account.
-// Changing it requires a code deploy.
-const ADMIN_EMAIL = "chariignatious@gmail.com";
+// ── Admin identity — loaded from environment, never hardcoded ─────────────────
+const ADMIN_EMAIL = process.env["ADMIN_EMAIL"];
+const RECOVERY_CODE = process.env["ADMIN_RECOVERY_CODE"];
 
-// ── Hidden emergency recovery code ───────────────────────────────────────────
-// Not exposed in any UI. Only accessible via direct API call or the
-// hidden triple-icon sequence on the admin login page.
-const RECOVERY_CODE = "SC-ADM-R3C-2025";
+if (!ADMIN_EMAIL) {
+  throw new Error("ADMIN_EMAIL environment variable is not set. Server cannot start.");
+}
+if (!RECOVERY_CODE) {
+  throw new Error("ADMIN_RECOVERY_CODE environment variable is not set. Server cannot start.");
+}
 
 // ── Demo user seeding (no passwords — admin sets them via Security tab) ──────
 async function seedDemoUsers() {
