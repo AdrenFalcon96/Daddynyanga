@@ -1,11 +1,3 @@
-envVarGroups:
-  - name: Samanyanga Companion
-    envVars:
-      - key: ADMIN_EMAIL
-        sync: false
-      - key: ADMIN_RECOVERY_CODE
-        sync: false
-
 services:
   # ── API Web Service ────────────────────────────────────────────────────────
   - type: web
