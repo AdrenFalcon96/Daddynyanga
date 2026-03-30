@@ -15,6 +15,7 @@ export function OfflineBanner() {
       setWasOffline(true);
       setBackOnline(false);
       setQueueMsg(null);
+      return undefined;
     } else if (wasOffline) {
       setBackOnline(true);
       setVisible(true);
@@ -25,6 +26,7 @@ export function OfflineBanner() {
       }, 3000);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [isOffline, wasOffline]);
 
   // Show queue delivery notification separately

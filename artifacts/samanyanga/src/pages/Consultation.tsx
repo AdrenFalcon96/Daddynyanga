@@ -247,14 +247,22 @@ export default function Consultation() {
 
           {step === "success" && (
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 52, marginBottom: 10 }}>✅</div>
-              <h3 style={{ fontSize: 20, fontWeight: 800, color: "#111", margin: "0 0 8px" }}>Request Submitted!</h3>
+              <div style={{ fontSize: 52, marginBottom: 10 }}>{wasQueued ? "📤" : "✅"}</div>
+              <h3 style={{ fontSize: 20, fontWeight: 800, color: "#111", margin: "0 0 8px" }}>
+                {wasQueued ? "Request Saved!" : "Request Submitted!"}
+              </h3>
               <p style={{ fontSize: 14, color: "#374151", marginBottom: 6 }}>
-                Thank you, <strong>{name}</strong>. Your {selectedTypeObj?.label} consultation has been received.
+                Thank you, <strong>{name}</strong>. Your {selectedTypeObj?.label} consultation has been{wasQueued ? " saved" : " received"}.
               </p>
-              <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 24 }}>
-                Our team will review and respond to <strong>{email}</strong> shortly.
-              </p>
+              {wasQueued ? (
+                <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", marginBottom: 20, fontSize: 13, color: "#1d4ed8" }}>
+                  📶 You're currently offline. Your request will be sent automatically once you're back online.
+                </div>
+              ) : (
+                <p style={{ fontSize: 13, color: "#6b7280", marginBottom: 24 }}>
+                  Our team will review and respond to <strong>{email}</strong> shortly.
+                </p>
+              )}
               <button onClick={() => navigate("/")}
                 style={{ padding: "12px 32px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
                 Back to Home

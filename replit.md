@@ -118,6 +118,23 @@ workspace/
 - `study_materials` — uploaded study content (file stored as base64 or URL)
 - `subjects` — ZIMSEC curriculum subjects by grade (dynamic, admin-managed)
 
+## Offline Architecture
+
+The app is a full PWA with layered offline support:
+
+| Layer | Mechanism | File |
+|---|---|---|
+| App shell & static assets | Workbox CacheFirst service worker | `vite.config.ts` |
+| API browse data (products, subjects, ads) | Workbox NetworkFirst, 24h expiry | `vite.config.ts` |
+| Study material files (PDFs, video) | Manual Cache API save via "save offline" button | `lib/offlineStorage.ts` |
+| AI responses | Cached in localStorage (last 60 replies, keyed by message) | `lib/aiEngine.ts` |
+| AI keyword fallbacks | 25 local keyword→answer pairs (no network needed) | `lib/aiEngine.ts` |
+| Form submission queue | Free consultations + intern applications queued in localStorage; auto-replayed on reconnect | `lib/offlineQueue.ts` |
+| Offline/online detection | `useOffline` hook + `OfflineBanner` (red/green, accurate messaging) | `hooks/useOffline.ts`, `components/OfflineBanner.tsx` |
+| Queue delivery notification | Purple "📤 X submissions delivered" banner on reconnect | `components/OfflineBanner.tsx`, `hooks/useOffline.ts` |
+
+**What does NOT work offline:** paid consultation (agronomic, requires payment flow), AI image/video generation (server-side only).
+
 ## Admin Setup & Recovery
 
 ### First-Time Admin Registration

@@ -27,6 +27,8 @@ const TABS = [
 
 function ApplyForm() {
   const qc = useQueryClient();
+  const isOffline = useOffline();
+  const [queued, setQueued] = useState(false);
   const [form, setForm] = useState({
     student_name: "",
     student_email: "",
@@ -43,8 +45,34 @@ function ApplyForm() {
       qc.invalidateQueries({ queryKey: ["/api/intern-attachments"] });
       setForm({ student_name: "", student_email: "", institution: "", program: "", year: "1st", message: "" });
     },
-    onError: (err: any) => alert("Failed: " + err.message),
+    onError: () => {
+      // Network failure — save to queue so it's sent when back online
+      addToQueue({
+        endpoint: "/api/intern-attachments",
+        method: "POST",
+        body: form as Record<string, unknown>,
+        label: `Intern application from ${form.student_name}`,
+      });
+      setQueued(true);
+      setForm({ student_name: "", student_email: "", institution: "", program: "", year: "1st", message: "" });
+    },
   });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isOffline) {
+      addToQueue({
+        endpoint: "/api/intern-attachments",
+        method: "POST",
+        body: form as Record<string, unknown>,
+        label: `Intern application from ${form.student_name}`,
+      });
+      setQueued(true);
+      setForm({ student_name: "", student_email: "", institution: "", program: "", year: "1st", message: "" });
+      return;
+    }
+    submitMutation.mutate(form);
+  };
 
   const field = (label: string, key: keyof typeof form, type = "text") => (
     <div style={{ marginBottom: 14 }}>
@@ -59,6 +87,19 @@ function ApplyForm() {
     </div>
   );
 
+  if (queued) {
+    return (
+      <div style={{ maxWidth: 560, margin: "0 auto", textAlign: "center", padding: "40px 16px" }}>
+        <div style={{ fontSize: 52, marginBottom: 10 }}>📤</div>
+        <h3 style={{ fontSize: 20, fontWeight: 800, color: "#111", margin: "0 0 8px" }}>Application Saved!</h3>
+        <p style={{ fontSize: 14, color: "#374151", marginBottom: 12 }}>Your application has been saved locally.</p>
+        <div style={{ background: "#eff6ff", border: "1px solid #bfdbfe", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#1d4ed8" }}>
+          📶 You're offline. Your application will be submitted automatically once you're back online.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ maxWidth: 560, margin: "0 auto" }}>
       <div style={{ background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: 10, padding: "14px 18px", marginBottom: 20 }}>
@@ -66,7 +107,7 @@ function ApplyForm() {
         <p style={{ margin: "4px 0 0", fontSize: 12, color: "#166534" }}>Submit your application to connect with farmers and agricultural institutions offering attachment opportunities in Zimbabwe.</p>
       </div>
 
-      <form onSubmit={e => { e.preventDefault(); submitMutation.mutate(form); }}>
+      <form onSubmit={handleSubmit}>
         {field("Full Name", "student_name")}
         {field("Email Address", "student_email", "email")}
         {field("Institution / University", "institution")}
