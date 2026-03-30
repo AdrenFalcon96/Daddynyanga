@@ -49,6 +49,6 @@ services:
 
     envVars:
       - key: VITE_API_URL
-        value: https://samanyanga-companion-yrqu.onrender.com
+        value: https://samanyanga-companion-static.onrender.com
       - key: BASE_PATH
         value: /

@@ -756,54 +756,175 @@ function StudyMaterialsTab() {
   );
 }
 
+const ROLE_COLORS: Record<string, string> = {
+  farmer: "#16a34a", student: "#0891b2", merchant: "#d97706",
+  seller: "#7c3aed", agri_intern: "#0f766e", admin: "#4f46e5",
+};
+
 function SecurityTab() {
-  const DEMO_ACCOUNTS = [
-    { email: "admin@demo.com", password: "demo123", role: "Admin", roleColor: "#4f46e5", description: "Full dashboard access — manage adverts, products, interns, consultations, revenue, study materials" },
-    { email: "farmer@demo.com", password: "demo123", role: "Farmer", roleColor: "#16a34a", description: "Access to AgriMarketplace, product listings, intern management, and AI farming assistant" },
-    { email: "student@demo.com", password: "demo123", role: "Student", roleColor: "#0891b2", description: "Access to Study Companion, study materials, AI tutor, and consultations" },
-    { email: "buyer@demo.com", password: "demo123", role: "Buyer/Merchant", roleColor: "#d97706", description: "Access to marketplace, product browsing, and buyer AI assistant" },
-    { email: "seller@demo.com", password: "demo123", role: "Seller", roleColor: "#7c3aed", description: "Access to product listings, seller tools, and seller AI assistant" },
-  ];
-  const copyToClipboard = (text: string) => navigator.clipboard?.writeText(text).catch(() => {});
+  const qc = useQueryClient();
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [pwInputs, setPwInputs] = useState<Record<string, string>>({});
+  const [pwSuccess, setPwSuccess] = useState<Record<string, boolean>>({});
+  const [adding, setAdding] = useState(false);
+  const [newUser, setNewUser] = useState({ email: "", role: "farmer", display_name: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  const { data: users = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/admin/users"],
+    queryFn: () => apiRequest("GET", "/api/admin/users"),
+  });
+
+  const setPasswordMutation = useMutation({
+    mutationFn: ({ id, password }: { id: string; password: string }) =>
+      apiRequest("PATCH", `/api/admin/users/${id}/password`, { password }),
+    onSuccess: (_data, { id }) => {
+      setPwSuccess(s => ({ ...s, [id]: true }));
+      setPwInputs(p => ({ ...p, [id]: "" }));
+      qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setTimeout(() => setPwSuccess(s => { const n = { ...s }; delete n[id]; return n; }), 3000);
+    },
+    onError: (err: any, { id }) => alert(`Failed to set password for user: ${err.message || "Unknown error"}`),
+  });
+
+  const addUserMutation = useMutation({
+    mutationFn: (data: typeof newUser) => apiRequest("POST", "/api/admin/users", data),
+    onSuccess: () => {
+      setAdding(false);
+      setNewUser({ email: "", role: "farmer", display_name: "" });
+      qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (err: any) => alert("Failed to create user: " + (err.message || "Unknown error")),
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => apiRequest("DELETE", `/api/admin/users/${id}`),
+    onSuccess: () => {
+      setDeleteConfirm(null);
+      qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    },
+    onError: (err: any) => alert("Delete failed: " + (err.message || "Unknown error")),
+  });
+
+  const inp: React.CSSProperties = {
+    padding: "8px 10px", border: "1px solid #d1d5db", borderRadius: 6,
+    fontSize: 13, outline: "none", boxSizing: "border-box" as const,
+  };
+
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <h2 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 4px" }}>🔐 Security & Access</h2>
-      <p style={{ fontSize: 13, color: "#6b7280", margin: "0 0 20px" }}>Demo accounts for testing and onboarding. These credentials are only visible to admins here — they are not shown on the login page.</p>
-      <div style={{ display: "grid", gap: 12, marginBottom: 24 }}>
-        {DEMO_ACCOUNTS.map(acc => (
-          <div key={acc.email} style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10, padding: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-              <span style={{ background: acc.roleColor, color: "#fff", padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>{acc.role}</span>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 12px" }}>
-                <p style={{ margin: 0, fontSize: 11, color: "#6b7280", fontWeight: 600 }}>EMAIL</p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, fontFamily: "monospace" }}>{acc.email}</p>
-                  <button onClick={() => copyToClipboard(acc.email)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0 }} title="Copy">📋</button>
-                </div>
-              </div>
-              <div style={{ background: "#f8fafc", borderRadius: 8, padding: "8px 12px" }}>
-                <p style={{ margin: 0, fontSize: 11, color: "#6b7280", fontWeight: 600 }}>PASSWORD</p>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <p style={{ margin: "2px 0 0", fontSize: 13, fontWeight: 600, fontFamily: "monospace" }}>{acc.password}</p>
-                  <button onClick={() => copyToClipboard(acc.password)} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: 0 }} title="Copy">📋</button>
-                </div>
-              </div>
-            </div>
-            <p style={{ margin: "8px 0 0", fontSize: 12, color: "#6b7280" }}>{acc.description}</p>
-          </div>
-        ))}
+    <div style={{ maxWidth: 820, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontSize: 17, fontWeight: 800, margin: "0 0 2px" }}>🔐 Security & Access</h2>
+          <p style={{ fontSize: 13, color: "#6b7280", margin: 0 }}>Manage platform accounts and set passwords for users.</p>
+        </div>
+        <button onClick={() => setAdding(v => !v)} style={{ padding: "8px 16px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+          {adding ? "Cancel" : "+ Add User"}
+        </button>
       </div>
+
+      {/* Add user form */}
+      {adding && (
+        <div style={{ background: "#f8fafc", border: "1px solid #e5e7eb", borderRadius: 10, padding: 18, marginBottom: 20 }}>
+          <p style={{ margin: "0 0 14px", fontWeight: 700, fontSize: 14 }}>New User Account</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 12 }}>
+            <input placeholder="Email address" type="email" value={newUser.email} onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))} style={{ ...inp, width: "100%" }} />
+            <input placeholder="Display name (optional)" value={newUser.display_name} onChange={e => setNewUser(u => ({ ...u, display_name: e.target.value }))} style={{ ...inp, width: "100%" }} />
+            <select value={newUser.role} onChange={e => setNewUser(u => ({ ...u, role: e.target.value }))} style={{ ...inp, width: "100%", background: "#fff" }}>
+              {["farmer", "student", "merchant", "seller", "agri_intern"].map(r => (
+                <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1).replace("_", " ")}</option>
+              ))}
+            </select>
+          </div>
+          <p style={{ margin: "0 0 12px", fontSize: 12, color: "#6b7280" }}>Account will be created without a password. Set one below after creation.</p>
+          <button onClick={() => addUserMutation.mutate(newUser)} disabled={!newUser.email || addUserMutation.isPending}
+            style={{ padding: "8px 20px", background: addUserMutation.isPending ? "#9ca3af" : "#4f46e5", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+            {addUserMutation.isPending ? "Creating..." : "Create Account"}
+          </button>
+        </div>
+      )}
+
+      {isLoading ? (
+        <p style={{ color: "#9ca3af", textAlign: "center", padding: 32 }}>Loading users...</p>
+      ) : users.length === 0 ? (
+        <div style={{ textAlign: "center", padding: 48, color: "#6b7280" }}>
+          <div style={{ fontSize: 40 }}>👥</div>
+          <p style={{ marginTop: 12 }}>No accounts yet. Add users above.</p>
+        </div>
+      ) : (
+        <div style={{ display: "grid", gap: 10, marginBottom: 24 }}>
+          {users.map((user: any) => {
+            const isExpanded = expandedId === user.id;
+            const pw = pwInputs[user.id] || "";
+            const saved = !!pwSuccess[user.id];
+            const roleColor = ROLE_COLORS[user.role] || "#6b7280";
+            return (
+              <div key={user.id} style={{ background: "#fff", border: `1px solid ${isExpanded ? "#a5b4fc" : "#e5e7eb"}`, borderRadius: 10, overflow: "hidden", transition: "border-color 0.2s" }}>
+                <div style={{ padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1, minWidth: 0 }}>
+                    <span style={{ background: roleColor, color: "#fff", padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap" }}>
+                      {user.role.replace("_", " ")}
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.display_name || user.email}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: "#6b7280", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 999, fontWeight: 600, background: user.has_password ? "#d1fae5" : "#fef3c7", color: user.has_password ? "#065f46" : "#92400e" }}>
+                      {user.has_password ? "✓ Password set" : "⚠ No password"}
+                    </span>
+                    <button onClick={() => setExpandedId(isExpanded ? null : user.id)}
+                      style={{ padding: "5px 12px", background: isExpanded ? "#f1f5f9" : "#4f46e5", color: isExpanded ? "#374151" : "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                      {isExpanded ? "Close" : "Set Password"}
+                    </button>
+                    {deleteConfirm === user.id ? (
+                      <>
+                        <button onClick={() => deleteUserMutation.mutate(user.id)} style={{ padding: "5px 10px", background: "#dc2626", color: "#fff", border: "none", borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Confirm</button>
+                        <button onClick={() => setDeleteConfirm(null)} style={{ padding: "5px 10px", background: "#f3f4f6", color: "#374151", border: "none", borderRadius: 6, fontSize: 12, cursor: "pointer" }}>Cancel</button>
+                      </>
+                    ) : (
+                      <button onClick={() => setDeleteConfirm(user.id)} style={{ padding: "5px 10px", background: "#fee2e2", color: "#991b1b", border: "none", borderRadius: 6, fontSize: 12, cursor: "pointer" }} title="Delete user">🗑</button>
+                    )}
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div style={{ borderTop: "1px solid #e5e7eb", padding: "12px 16px", background: "#fafafa" }}>
+                    <p style={{ margin: "0 0 10px", fontSize: 12, color: "#6b7280" }}>
+                      Set a password for <strong>{user.email}</strong>. They will use this to log in.
+                    </p>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        type="password"
+                        value={pw}
+                        onChange={e => setPwInputs(p => ({ ...p, [user.id]: e.target.value }))}
+                        placeholder="New password (min. 6 chars)"
+                        style={{ ...inp, flex: 1 }}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        onClick={() => pw.length >= 6 && setPasswordMutation.mutate({ id: user.id, password: pw })}
+                        disabled={pw.length < 6 || setPasswordMutation.isPending}
+                        style={{ padding: "8px 16px", background: saved ? "#16a34a" : pw.length >= 6 ? "#4f46e5" : "#9ca3af", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+                        {saved ? "✓ Saved" : setPasswordMutation.isPending ? "Saving..." : "Set Password"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       <div style={{ border: "1px solid #fef3c7", borderRadius: 10, padding: 16, background: "#fffbeb" }}>
         <p style={{ margin: "0 0 8px", fontWeight: 700, fontSize: 14, color: "#92400e" }}>⚠️ Security Notes</p>
         <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: "#78350f", lineHeight: 1.8 }}>
-          <li>Demo accounts use <strong>demo123</strong> as password — change before going live</li>
-          <li>Demo credentials are <strong>not shown</strong> on the public admin login page</li>
-          <li>Admin access requires the <code>admin</code> role — no email bypass</li>
+          <li>Accounts without a password cannot log in — set passwords before sharing with users</li>
+          <li>Admin account identity is verified server-side — it cannot be changed from the UI</li>
           <li>Tokens expire after 7 days — users must re-login after expiry</li>
           <li>EcoCash account for payments: <strong>0783652488</strong></li>
-          <li>JWT secret is stored via environment variable — rotate it before production</li>
         </ul>
       </div>
     </div>

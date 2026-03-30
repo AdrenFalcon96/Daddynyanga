@@ -1,10 +1,8 @@
 import { createHmac, timingSafeEqual } from "crypto";
+import bcrypt from "bcryptjs";
 
 const SECRET = process.env.JWT_SECRET;
 
-// If JWT_SECRET is not explicitly set, derive a stable secret from DATABASE_URL.
-// DATABASE_URL is already required for the DB connection, so this removes the need
-// for a separate JWT_SECRET env var in production.
 function deriveSecret(): string {
   const dbUrl = process.env.DATABASE_URL;
   if (dbUrl) {
@@ -51,10 +49,20 @@ export function verifyToken(token: string): Record<string, unknown> {
   return payload;
 }
 
-// Password hashing uses a separate, stable salt (NOT the JWT secret)
-// so passwords remain valid after rotating JWT_SECRET
+// ── Legacy password hashing (HMAC-SHA256) — used for non-admin/demo accounts ──
 const PASSWORD_SALT = process.env.PASSWORD_SALT || "samanyanga-fixed-secret-2024";
 
 export function hashPassword(password: string): string {
   return createHmac("sha256", PASSWORD_SALT).update(password).digest("hex");
+}
+
+// ── Bcrypt — used exclusively for the admin account ──────────────────────────
+
+export async function hashBcrypt(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
+}
+
+export async function verifyBcrypt(password: string, hash: string): Promise<boolean> {
+  if (!hash || hash === "__unset__") return false;
+  return bcrypt.compare(password, hash);
 }

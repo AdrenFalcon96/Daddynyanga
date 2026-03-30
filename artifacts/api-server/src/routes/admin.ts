@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response, type NextFunction } from "express";
 import { query } from "../lib/db";
-import { verifyToken } from "../lib/jwt";
+import { verifyToken, hashPassword } from "../lib/jwt";
 
 const router: IRouter = Router();
 
@@ -402,7 +402,68 @@ router.delete("/admin/subjects/:id", adminAuth, async (req, res) => {
   } catch (err: any) { res.status(500).json({ error: err.message }); }
 });
 
-// Public subjects endpoint (used by StudentCompanion)
+// ── User Management (Security & Access) ──────────────────────────────────────
+
+router.get("/admin/users", adminAuth, async (_req, res) => {
+  try {
+    const result = await query(
+      `SELECT id, email, role, display_name,
+              (password != '__unset__') AS has_password,
+              created_at
+       FROM users
+       WHERE role != 'admin'
+       ORDER BY role, email`,
+      []
+    );
+    res.json(result.rows);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.patch("/admin/users/:id/password", adminAuth, async (req, res) => {
+  const { password } = req.body;
+  if (!password || String(password).length < 6) {
+    res.status(400).json({ error: "Password must be at least 6 characters." }); return;
+  }
+  try {
+    const check = await query("SELECT role FROM users WHERE id = $1", [req.params.id]);
+    if (!check.rows[0]) { res.status(404).json({ error: "User not found." }); return; }
+    if (check.rows[0].role === "admin") {
+      res.status(403).json({ error: "Cannot change admin password from here." }); return;
+    }
+    // Regular users use HMAC-SHA256 (legacy); bcrypt is admin-only
+    const hashed = hashPassword(String(password));
+    await query("UPDATE users SET password = $1 WHERE id = $2", [hashed, req.params.id]);
+    res.json({ success: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.post("/admin/users", adminAuth, async (req, res) => {
+  const { email, role, display_name } = req.body;
+  if (!email || !role) { res.status(400).json({ error: "Email and role are required." }); return; }
+  const allowed = ["farmer", "merchant", "seller", "student", "agri_intern"];
+  if (!allowed.includes(role)) { res.status(400).json({ error: "Invalid role." }); return; }
+  try {
+    const existing = await query("SELECT id FROM users WHERE LOWER(email) = LOWER($1)", [email]);
+    if (existing.rows.length > 0) { res.status(409).json({ error: "Email already registered." }); return; }
+    const result = await query(
+      "INSERT INTO users (email, password, role, display_name) VALUES ($1, '__unset__', $2, $3) RETURNING id, email, role, display_name, false AS has_password",
+      [email, role, display_name || String(email).split("@")[0]]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete("/admin/users/:id", adminAuth, async (req, res) => {
+  try {
+    const check = await query("SELECT role FROM users WHERE id = $1", [req.params.id]);
+    if (!check.rows[0]) { res.status(404).json({ error: "User not found." }); return; }
+    if (check.rows[0].role === "admin") { res.status(403).json({ error: "Cannot delete admin account." }); return; }
+    await query("DELETE FROM users WHERE id = $1", [req.params.id]);
+    res.json({ success: true });
+  } catch (err: any) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Public subjects endpoint (used by StudentCompanion) ──────────────────────
 router.get("/subjects", async (req, res) => {
   const { grade } = req.query;
   try {
