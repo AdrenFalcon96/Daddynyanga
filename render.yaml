@@ -20,8 +20,9 @@ services:
       - key: PORT
         value: 10000
 
-      # Required secrets — set these in the Render dashboard
+      # Required secrets — set these in the Render dashboard or via an environment group
       # JWT_SECRET is OPTIONAL: if omitted, it is derived from DATABASE_URL automatically
+      # ADMIN_EMAIL and ADMIN_RECOVERY_CODE must be provided via your environment group
       - key: DATABASE_URL
         sync: false
       - key: OPENAI_API_KEY
@@ -29,10 +30,6 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: SISIF_AI_API_KEY
-        sync: false
-      - key: ADMIN_EMAIL
-        sync: false
-      - key: ADMIN_RECOVERY_CODE
         sync: false
 
   # ── Static Website (Frontend) ──────────────────────────────────────────────
