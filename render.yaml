@@ -31,9 +31,9 @@ services:
       - key: SISIF_AI_API_KEY
         sync: false
       - key: ADMIN_EMAIL
-        sync: false
+        fromGroup: Samanyanga Companion
       - key: ADMIN_RECOVERY_CODE
-        sync: false
+        fromGroup: Samanyanga Companion
 
   # ── Static Website (Frontend) ──────────────────────────────────────────────
   - type: static
