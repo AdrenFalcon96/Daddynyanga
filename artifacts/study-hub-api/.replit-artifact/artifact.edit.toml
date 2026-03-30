@@ -1,0 +1,31 @@
+kind = "api"
+previewPath = "/study-hub-api"
+title = "Study Hub API"
+version = "1.0.0"
+id = "artifacts/study-hub-api"
+
+[[services]]
+localPort = 8099
+name = "Study Hub API"
+paths = ["/study-hub-api"]
+
+[services.development]
+run = "pnpm --filter @workspace/study-hub-api run dev"
+
+[services.production]
+
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/study-hub-api", "run", "build"]
+
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = ["node", "--enable-source-maps", "artifacts/study-hub-api/dist/index.mjs"]
+
+[services.production.run.env]
+PORT = "8099"
+NODE_ENV = "production"
+
+[services.production.health.startup]
+path = "/api/health"

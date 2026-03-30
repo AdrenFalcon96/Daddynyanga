@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/study-hub/"
+title = "Samanyanga Study Hub"
+version = "1.0.0"
+id = "artifacts/study-hub"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/study-hub/" ]
+localPort = 19937
+
+[services.development]
+run = "pnpm --filter @workspace/study-hub run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/study-hub", "run", "build" ]
+publicDir = "artifacts/study-hub/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19937"
+BASE_PATH = "/study-hub/"

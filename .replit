@@ -30,6 +30,14 @@ args = "API Server"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Study Hub API"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Study Hub"
+
 [[workflows.workflow]]
 name = "API Server"
 author = "agent"
@@ -54,6 +62,30 @@ task = "shell.exec"
 args = "PORT=21688 BASE_PATH=/ pnpm --filter @workspace/samanyanga run dev"
 waitForPort = 21688
 
+[[workflows.workflow]]
+name = "Study Hub API"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/study-hub-api run dev"
+waitForPort = 8099
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "Study Hub"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "PORT=3001 BASE_PATH=/ STUDY_HUB_API_PORT=8099 pnpm --filter @workspace/study-hub run dev"
+waitForPort = 3001
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -72,3 +104,4 @@ PORT = "8080"
 JWT_SECRET = "a6e50f9b127a1325319f481947988110ee08ea76e5ec40f13dcfe9b300f97227fe421317ceaeff77f53664ebc255e51a630168358fdf0fccfd4f536126de2241"
 ADMIN_EMAIL = "admin@samanyanga.com"
 ADMIN_RECOVERY_CODE = "samanyanga-recovery-2025"
+ADMIN_PASSWORD_HASH = "$2b$12$71dK7s.vQssp83lJyOsa6eT2olFOSvulIJoVruimY19hsdCQ.WiUe"
