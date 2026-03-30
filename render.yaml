@@ -14,16 +14,13 @@ services:
 
     startCommand: node artifacts/api-server/dist/index.mjs
 
-    envVarGroups:
-      - Samanyanga Companion
-
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
 
-      # Required secrets — set these in the Render dashboard
+      # Required secrets — set these directly on the service in the Render dashboard
       # JWT_SECRET is OPTIONAL: if omitted, it is derived from DATABASE_URL automatically
       - key: DATABASE_URL
         sync: false
@@ -32,6 +29,10 @@ services:
       - key: OPENROUTER_API_KEY
         sync: false
       - key: SISIF_AI_API_KEY
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_RECOVERY_CODE
         sync: false
 
   # ── Static Website (Frontend) ──────────────────────────────────────────────
