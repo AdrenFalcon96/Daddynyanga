@@ -9,7 +9,7 @@ workflows:
         - keystore_credentials
       vars:
         PACKAGE_NAME: "zw.co.samanyanga.companion"
-        VITE_API_URL: "https://samanyanga-api.onrender.com"
+        VITE_API_URL: ""  # Set this to your deployed API URL
 
     triggering:
       events:

@@ -17,7 +17,7 @@ Full-stack Zimbabwe agricultural marketplace and learning platform. pnpm workspa
 - **AI**: Replit OpenRouter integration (Mistral Ministral-8B) → OpenAI fallback; rich client-side offline fallback; DALL-E 3 for image gen; SISIF.AI for video gen
 - **Mobile**: Capacitor v8 configured for Android APK builds (`artifacts/samanyanga/capacitor.config.ts`, `codemagic.yaml` at repo root)
 - **Payments**: EcoCash — account 0783652488
-- **Deployment**: Render (render.yaml at root)
+- **Deployment**: Self-hosted / configurable
 
 ## Structure
 
